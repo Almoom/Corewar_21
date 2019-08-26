@@ -19,20 +19,21 @@
 # define TRUE 1
 # define FALSE 0
 
-typedef struct		s_read
+typedef struct		s_val
 {
-	struct s_read	*next;
+	struct s_val	*next;
 	char			*line;
-	char			*name;
-	char			*x_y;
-	char			*name1;
-	char			*name2;
-	int				isnum;
-	int				isstart;
-	int				isend;
-	int				isxy;
-	int				isedge;
-}					t_read;
+	char			*content;
+	int				is_nm_start;
+	int				is_nm_middle;
+	int				is_nm_end;
+	int				is_cmnt_start;
+	int				is_cmnt_middle;
+	int				is_cmnt_end;
+	int				len;
+	int				iscmd;
+	int				ismark;
+}					t_val;
 
 
 
