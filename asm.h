@@ -23,7 +23,7 @@ typedef struct		s_val
 {
 	struct s_val	*next;
 	char			*line;
-	char			*content;
+	char			*data;
 	int				is_nm_start;
 	int				is_nm_middle;
 	int				is_nm_end;
@@ -31,8 +31,11 @@ typedef struct		s_val
 	int				is_cmnt_middle;
 	int				is_cmnt_end;
 	int				len;
+	int				istxt;
 	int				iscmd;
-	int				ismark;
+	int				n_cmd;
+	int				islbl;
+	int				numlbl;
 }					t_val;
 
 
