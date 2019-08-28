@@ -34,7 +34,12 @@ typedef struct		s_val
 	int				istxt;
 	int				iscmd;
 	int				n_cmd;
+	int				a1;
+	int				a2;
+	int				a3;
+	int				ready;
 	int				islbl;
+	char			*n_lbl;
 	int				numlbl;
 }					t_val;
 

@@ -3,7 +3,7 @@
 oo
 
  wallets"		;---------
-   .name ".namePuhlyash"
+   .name".namePuhlyash"
  	# -----
 			# ------
 	xor r0,r0,r0
@@ -16,15 +16,15 @@ oo
 	live %1
 	live %1
 	live %1
-	toto:
+	toto:live%1111
 deb1:
 zjmp %:deb
-	live %1 #------
+	live%1 #------
 	live %1
-	live %1
+	live%1
 	live %1
 ; -----
-	live %1
+	live%1
 
 	live %1 ;---------
 	live %1
@@ -33,9 +33,10 @@ zjmp %:deb
 
 	live %1
 	live %1
-deb: fork %12
-	ld %0x70000004,r0
-	ld %0x08030003,r0
+deb:fork %12
+	ld %4,r0
+	ld %3,r0
 	live %1
+	aff r3
 	st r0,4
 op:
