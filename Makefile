@@ -16,6 +16,7 @@ SRC = asm.c
 
 make:
 	@$(CC) -g -o $(NAME) $(SRC) /Users/ljalikak/Documents/corewar_21/libft/libft.a
+	./$(NAME) puhlyash.s
 
 clean:
 	@rm -f /Users/ljalikak/Documents/corewar_21/libft/*.o
