@@ -56,7 +56,7 @@ int g_tab_reg[16][2] =
 void	printer_valid(t_val *head)
 {
 	//ft_putendl("nm1\tnm2\tnm3\tcom1\tcom2\tcom3\tlen\ttxt\tcmd\t№\ta1\ta2\ta3\tx0\tready\tlbl\tname\tdata\tline\n");
-	ft_putendl("cmd\t№\ttype\t\ta1\tda1\tlen1\ta2\tda2\tlen2\ta3\tda3\tlen3\tready\tlbl\tname\tdata\t\tline\n");
+	ft_putendl("cmd\t№\tlen\ttype\t\ta1\tda1\tlen1\ta2\tda2\tlen2\ta3\tda3\tlen3\tready_l\tready\tlbl\tname\tdata\t\tline\n");
 	while (head)
 	{
 		// ft_putnbr(head->is_nm_start);
@@ -71,8 +71,6 @@ void	printer_valid(t_val *head)
 		// ft_putstr("\t");
 		// ft_putnbr(head->is_cmnt_end);
 		// ft_putstr("\t");
-		// ft_putnbr(head->len);
-		// ft_putstr("\t");
 		// ft_putnbr(head->istxt);
 		// ft_putstr("\t");
 		if (head->istxt == 0)
@@ -81,28 +79,32 @@ void	printer_valid(t_val *head)
 			ft_putstr("\t");
 			ft_putnbr(head->n_cmd);
 			ft_putstr("\t");
-			head->type1[0] ? ft_putstr(head->type1) : ft_putstr("  ");
-			head->type2[0] ? ft_putstr(head->type2) : ft_putstr("  ");
-			head->type3[0] ? ft_putstr(head->type3) : ft_putstr("  ");
-			head->type0[0] ? ft_putstr(head->type0) : ft_putstr("  ");
+			ft_putnbr(head->len);
 			ft_putstr("\t");
-			ft_putnbr(head->a1);
+			head->arg[0]->type ? ft_putstr(head->arg[0]->type) : ft_putstr("  ");
+			head->arg[1]->type ? ft_putstr(head->arg[1]->type) : ft_putstr("  ");
+			head->arg[2]->type ? ft_putstr(head->arg[2]->type) : ft_putstr("  ");
+			head->arg[3]->type ? ft_putstr(head->arg[3]->type) : ft_putstr("  ");
 			ft_putstr("\t");
-			head->da1 ? ft_putstr(head->da1) : 0;
+			ft_putnbr(head->arg[0]->dec);
 			ft_putstr("\t");
-			ft_putnbr(head->la1);
+			head->arg[0]->data ? ft_putstr(head->arg[0]->data) : 0;
 			ft_putstr("\t");
-			ft_putnbr(head->a2);
+			ft_putnbr(head->arg[0]->len);
 			ft_putstr("\t");
-			head->da2 ? ft_putstr(head->da2) : 0;
+			ft_putnbr(head->arg[1]->dec);
 			ft_putstr("\t");
-			ft_putnbr(head->la2);
+			head->arg[1]->data ? ft_putstr(head->arg[1]->data) : 0;
 			ft_putstr("\t");
-			ft_putnbr(head->a3);
+			ft_putnbr(head->arg[1]->len);
 			ft_putstr("\t");
-			head->da3 ? ft_putstr(head->da3) : 0;
+			ft_putnbr(head->arg[2]->dec);
 			ft_putstr("\t");
-			ft_putnbr(head->la3);
+			head->arg[2]->data ? ft_putstr(head->arg[2]->data) : 0;
+			ft_putstr("\t");
+			ft_putnbr(head->arg[2]->len);
+			ft_putstr("\t");
+			ft_putnbr(head->ready_len);
 			ft_putstr("\t");
 			ft_putnbr(head->ready);
 			ft_putstr("\t");
@@ -257,27 +259,36 @@ char	*del_comments(char *s)
 t_val	*create_list_valid(char *s)
 {
 	t_val *list;
+	int i;
 
+	i = 0;
 	if (!(list = (t_val*)ft_memalloc(sizeof(*list))))
 		return (NULL);
 	list->line = ft_strdup(s);
-	list->type1 = ft_strdup("00");
-	list->type2 = ft_strdup("00");
-	list->type3 = ft_strdup("00");
-	list->type0 = ft_strdup("00");
+	while (i < 4)
+	{
+		if (!(list->arg[i] = (t_ar*)ft_memalloc(sizeof(*list->arg[i]))))
+			return (NULL);
+		i++;
+	}
 	return (list);
 }
 
 t_val	*creator_valid(t_val *head, char *s)
 {
 	t_val *tmp;
+	t_val *list;
 
 	tmp = head;
+	list = NULL;
 	while (head->next)
 	{
+		list = head;
 		head = head->next;
 	}
-	head->next = create_list_valid(s);
+	list = create_list_valid(s);
+	head->next = list;
+	list->prev = head;
 	return (tmp);
 }
 
@@ -453,20 +464,20 @@ void 	cut_space(t_val *h)
 			h->line = skip_chars_at_first(h->line, " 	");
 			h->line = skip_chars_from_end(h->line, " 	");
 		}
-		if (h->da1)
+		if (h->arg[0]->data)
 		{
-			h->da1 = skip_chars_at_first(h->da1, " 	");
-			h->da1 = skip_chars_from_end(h->da1, " 	");
+			h->arg[0]->data = skip_chars_at_first(h->arg[0]->data, " 	");
+			h->arg[0]->data = skip_chars_from_end(h->arg[0]->data, " 	");
 		}
-		if (h->da2)
+		if (h->arg[1]->data)
 		{
-			h->da2 = skip_chars_at_first(h->da2, " 	");
-			h->da2 = skip_chars_from_end(h->da2, " 	");
+			h->arg[1]->data = skip_chars_at_first(h->arg[1]->data, " 	");
+			h->arg[1]->data = skip_chars_from_end(h->arg[1]->data, " 	");
 		}
-		if (h->da3)
+		if (h->arg[2]->data)
 		{
-			h->da3 = skip_chars_at_first(h->da3, " 	");
-			h->da3 = skip_chars_from_end(h->da3, " 	");
+			h->arg[2]->data = skip_chars_at_first(h->arg[2]->data, " 	");
+			h->arg[2]->data = skip_chars_from_end(h->arg[2]->data, " 	");
 		}
 		h = h->next;
 	}
@@ -531,12 +542,14 @@ void	write_command_num(t_val *h)
 			|| h->line[0] == '%'))
 				h->iscmd = 1;
 			h->n_cmd = num + 1;
-			if (g_tab_reg[num][0] == 0)
+			h->len++;
+			if (g_tab_reg[num][0] == 1)
 			{
-				ft_bzero(h->type1, 2);
-				ft_bzero(h->type2, 2);
-				ft_bzero(h->type3, 2);
-				ft_bzero(h->type0, 2);
+				h->arg[0]->type = ft_strdup("00");
+				h->arg[1]->type = ft_strdup("00");
+				h->arg[2]->type = ft_strdup("00");
+				h->arg[3]->type = ft_strdup("00");
+				h->len++;
 			}
 			if (h->line && (h->islbl == 1 || h->iscmd == 1))
 				h->line = skip_chars_at_first(h->line, " 	");
@@ -564,9 +577,10 @@ void	find_label_data(t_val *h)
 				h->line = ft_strjoin_free(h->line, t->line, 1, 0);
 			else
 			{
-				h->la1 = 2;
-				h->la2 = 2;
-				h->la3 = 2;
+				h->arg[0]->len = 2;
+				h->arg[1]->len = 2;
+				h->arg[2]->len = 2;
+				h->ready_len = 1;
 				h->ready = 1;
 			}
 		}
@@ -670,43 +684,87 @@ int		check_lbl(t_val *h, char *s)
 	return (FALSE);
 }
 
-int		len_loner_reg(t_val *h, int cmd, char *s)
-{
-	if (s[0] == 'r' && scroll_chars(s + 1, "0123456789", '\0')
-	&& ft_atoi(s + 1) <= REG_NUMBER )
-		return (g_tab_reg[cmd - 1][0] + g_tab_reg[cmd - 1][1] + 1);
-	return (0);
-}
-
-// void	read_dir(t_val *h, int num)
+// int		len_loner_reg(t_val *h, int cmd, char *s)
 // {
-// 	if (num == 1 && h->da1[0] == DIRECT_CHAR)
-// 	{
-// 		if (scroll_chars(h->da1 + 1, "0123456789", '\0'))
-// 		{
-// 			a1 = ft_atoi(h->da1 + 1);
-// 			h->la1 = g_tab_reg[cmd - 1][0] + g_tab_reg[cmd - 1][1] + 1;
-// 		}
-// 	}
-// 	// else if (s[0] == DIRECT_CHAR && ((check_int(s + 1) && !ft_strchr(s, '+'))
-// 	// || (s[1] == LABEL_CHAR && check_lbl(h, s + 2))))
-// 	// 	return (g_tab_reg[cmd - 1][0] + g_tab_reg[cmd - 1][1] + 1);
-//
-// }
-
-// void	read_args(t_val *h)
-// {
-// 	// int len;
-// 	//
-// 	// len = 0;
-// 	if (h->n_cmd == 1 || h->n_cmd == 9 || h->n_cmd == 12 || h->n_cmd == 15)
-// 		read_dir(h, 1);
-// 	if (cmd == 16)
-// 		read_reg(h, 1);
-// 	// if (cmd == 2)
-// 	// 	return (len_ld(h, cmd, s));
+// 	if (s[0] == 'r' && scroll_chars(s + 1, "0123456789", '\0')
+// 	&& ft_atoi(s + 1) <= REG_NUMBER )
+// 		return (g_tab_reg[cmd - 1][0] + g_tab_reg[cmd - 1][1] + 1);
 // 	return (0);
 // }
+
+int		find_byte_to_lbl(t_val *h, t_val *t, int num)
+{
+	while (h)
+	{
+		if (h == t)
+		{
+			while (h)
+			{
+				if (h->islbl && !ft_strcmp(h->n_lbl, t->arg[num]->data + 2))
+					return (TRUE);
+				if (h->ready_len == 0)
+					return (FALSE);
+				h = h->next;
+			}
+		}
+		if (h->islbl && !ft_strcmp(h->n_lbl, t->arg[num]->data + 2))
+		{
+			while (h)
+			{
+				if (h == t)
+					return (TRUE);
+				if (h->ready_len == 0)
+					return (FALSE);
+				h = h->next;
+			}
+		}
+		if (h)
+			h = h->next;
+	}
+	return (FALSE);
+}
+
+void	read_dir(t_val *h, t_val *t, int num)
+{
+	if (t->arg[num]->data[0] == DIRECT_CHAR && scroll_chars
+	(t->arg[num]->data + 1, "0123456789", '\0'))
+	{
+		t->arg[num]->dec = ft_atoi(t->arg[num]->data + 1);
+		t->arg[num]->len = g_tab_reg[t->n_cmd - 1][1];
+		t->ready_len = 1;
+		t->ready = 1;
+	}
+	else if (t->arg[num]->data[0] == DIRECT_CHAR
+	&& t->arg[num]->data[1] == LABEL_CHAR
+	&& scroll_chars(t->arg[num]->data + 2, LABEL_CHARS, '\0')
+	&& check_lbl(h, t->arg[num]->data + 2))
+	{
+		t->arg[num]->len = g_tab_reg[t->n_cmd - 1][1];
+		t->ready_len = 1;
+		if (find_byte_to_lbl(h, t, num))
+		{
+			//заполняем значение %:метка и ставим ready!
+			t->ready = 1;
+		}
+	}
+	else
+		ft_putendl("Невалидный аргумент T_DIR");
+}
+
+void	read_args(t_val *h, t_val *t)
+{
+	// int len;
+	//
+	// len = 0;
+
+	if (t->n_cmd == 1 || t->n_cmd == 9 || t->n_cmd == 12 || t->n_cmd == 15)
+		read_dir(h, t, 0);
+	if (t->n_cmd == 16)
+		;//read_reg(h, 1);
+	// if (cmd == 2)
+	// 	return (len_ld(h, cmd, s));
+
+}
 
 void	read_command(t_val *h)
 {
@@ -715,8 +773,8 @@ void	read_command(t_val *h)
 	t = h;
 	while (t)
 	{
-		if (t->n_cmd >= 0 && t->ready != 1)
-			;//read_args(t);
+		if (t->n_cmd >= 0 && t->ready == 0)
+			read_args(h, t);
 		t = t->next;
 	}
 }
@@ -760,15 +818,34 @@ char	*ft_itoa_16(int n, int count)
 	return (s = ft_strnrev_free(s, count, 1));
 }
 
+int		build_byte_types(t_val *h)
+{
+	char *rez;
+	int i;
+
+	rez = NULL;
+	i = 0;
+	while (i < 4)
+	{
+		rez = ft_strjoin_free(rez, h->arg[i]->type, 1, 0);
+		i++;
+	}
+	return (ft_atoi(rez));
+}
+
 void	build_0x(t_val *h)
 {
 	h->data = ft_strdup("0x");
 	h->data = ft_strjoin_free(h->data, ft_itoa_16(h->n_cmd, 2), 1, 1);
-	// if (h->type != 0)
-	// 	h->data = ft_strjoin_free(h->data, ft_itoa_16(h->type, 2), 1, 1);
-	h->data = ft_strjoin_free(h->data, ft_itoa_16(h->a1, h->la1), 1, 1);
-	h->data = ft_strjoin_free(h->data, ft_itoa_16(h->a2, h->la2), 1, 1);
-	h->data = ft_strjoin_free(h->data, ft_itoa_16(h->a3, h->la3), 1, 1);
+	if (h->n_cmd > 0 && g_tab_reg[h->n_cmd - 1][0] != 0)
+		h->data = ft_strjoin_free(h->data, ft_itoa_16
+		(build_byte_types(h), 2), 1, 1);
+	h->data = ft_strjoin_free(h->data, ft_itoa_16
+	(h->arg[0]->dec, h->arg[0]->len), 1, 1);
+	h->data = ft_strjoin_free(h->data, ft_itoa_16
+	(h->arg[1]->dec, h->arg[1]->len), 1, 1);
+	h->data = ft_strjoin_free(h->data, ft_itoa_16
+	(h->arg[2]->dec, h->arg[2]->len), 1, 1);
 }
 
 int		check_ready(t_val *h)
@@ -803,7 +880,6 @@ void	split_by_comma(t_val *h)
 {
 	char **arr;
 
-	arr = NULL;
 	while (h)
 	{
 		if (h->n_cmd > 0)
@@ -813,9 +889,9 @@ void	split_by_comma(t_val *h)
 			&& split_len(arr) == count_chars(h->line, SEPARATOR_CHAR) + 1)
 			|| (count_chars(h->line, SEPARATOR_CHAR) == 0)))
 			{
-				h->da1 = ft_strdup(arr[0]);
-				h->da2 = (arr[1]) ? ft_strdup(arr[1]) : NULL;
-				h->da3 = ((arr[1]) && (arr[2])) ? ft_strdup(arr[2]) : NULL;
+				h->arg[0]->data = ft_strdup(arr[0]);
+				h->arg[1]->data = arr[1] ? ft_strdup(arr[1]) : NULL;
+				h->arg[2]->data = arr[1] && arr[2] ? ft_strdup(arr[2]) : NULL;
 			}
 			else
 			{
@@ -828,29 +904,36 @@ void	split_by_comma(t_val *h)
 	}
 }
 
-void 	substitution_lbl_ind_add(t_val *a, t_val *b)
+void	substitution_lbl_ind(t_val *a, t_val *b)
 {
-	if (a->da1 && a->da1[0] == LABEL_CHAR && b->islbl && b->ready
-	&& !ft_strcmp(a->da1 + 1, b->n_lbl))
+	t_val *t;
+	int i;
+
+	t = b;
+	while (a)
 	{
-		free(a->da1);
-		a->da1 = ft_strdup(b->data);
-	}
-	if (a->da2 && a->da2[0] == LABEL_CHAR && b->islbl && b->ready
-	&& !ft_strcmp(a->da2 + 1, b->n_lbl))
-	{
-		free(a->da2);
-		a->da2 = ft_strdup(b->data);
-	}
-	if (a->da3 && a->da3[0] == LABEL_CHAR && b->islbl && b->ready
-	&& !ft_strcmp(a->da3 + 1, b->n_lbl))
-	{
-		free(a->da3);
-		a->da3 = ft_strdup(b->data);
+		while (b)
+		{
+			i = 0;
+			while (i < 3)
+			{
+				if (a->arg[i]->data && b->ready && b->islbl
+				&& !ft_strcmp(a->arg[i]->data + 1, b->n_lbl)
+				&& a->arg[i]->data[0] == LABEL_CHAR)
+				{
+					free(a->arg[i]->data);
+					a->arg[i]->data = ft_strdup(b->data);
+				}
+				i++;
+			}
+			b = b->next;
+		}
+		b = t;
+		a = a->next;
 	}
 }
 
-void	substitution_lbl_ind(t_val *a, t_val *b)
+void	check_dubl_labal(t_val *a, t_val *b)
 {
 	t_val *t;
 
@@ -859,12 +942,69 @@ void	substitution_lbl_ind(t_val *a, t_val *b)
 	{
 		while (b)
 		{
-			substitution_lbl_ind_add(a, b);
+			if (a->islbl && b->islbl && a!= b && !ft_strcmp(a->n_lbl, b->n_lbl))
+				a->islbl = 0;
 			b = b->next;
 		}
 		b = t;
 		a = a->next;
 	}
+}
+
+int		check_champ(t_val *h, int max, int flag)
+{
+	int count;
+	int len;
+	int start;
+	int end;
+
+	count = 0;
+	len = 0;
+	while (h)
+	{
+		start = flag == 0 ? h->is_nm_start : h->is_cmnt_start;
+		end = flag == 0 ? h->is_nm_end : h->is_cmnt_end;
+		if (h->istxt && start)
+		{
+			count++;
+			len = h->len;
+		}
+		if (h->istxt && end)
+		{
+			count++;
+			break ;
+		}
+		h = h->next;
+	}
+	return ((count == 2 && len <= max) ? TRUE : FALSE);
+}
+
+int		check_all(t_val *h)
+{
+	while (h)
+	{
+		if (!h->istxt && !h->islbl && !h->iscmd)
+			return (FALSE);
+		h = h->next;
+	}
+	return (TRUE);
+}
+
+void	parse_commands(t_val *h)
+{
+	split_by_comma(h);
+	cut_space(h);
+
+	if /*while*/(check_ready(h))
+	{
+
+		substitution_lbl_ind(h, h);
+
+		read_command(h);
+	}
+	printer_valid(h);
+
+	//parse_lbl_args(h);
 }
 
 void	vocabulary(t_val *h, char *quote1, char *quote2)
@@ -878,24 +1018,15 @@ void	vocabulary(t_val *h, char *quote1, char *quote2)
 	write_content(h, quote1, quote2);
 	cut_space(h);
 	find_label(h);
+	check_dubl_labal(h, h);
 	find_label_data(h);
 	write_command_num(h);
-	split_by_comma(h);
-	cut_space(h);
-
-
-
-	if /*while*/(check_ready(h))
-	{
-		substitution_lbl_ind(h, h);
-		//read_command(h);
-	}
-
-
-	printer_valid(h);
-	//parse_lbl_args(h);
-
-	//в конце проверить длины
+	if (check_champ(h, PROG_NAME_LENGTH, 0) && check_champ(h, COMMENT_LENGTH, 1)
+	&& check_all(h))
+		parse_commands(h);
+	else
+		ft_putendl
+		("ошибка лексики имени/комментария/названия метки/названия команды");
 }
 
 void	del_list_valid(t_val **del)
@@ -903,13 +1034,13 @@ void	del_list_valid(t_val **del)
 	ft_memdel((void**)(&(*del)->line));
 	ft_memdel((void**)(&(*del)->data));
 	ft_memdel((void**)(&(*del)->n_lbl));
-	ft_memdel((void**)(&(*del)->da1));
-	ft_memdel((void**)(&(*del)->da2));
-	ft_memdel((void**)(&(*del)->da3));
-	ft_memdel((void**)(&(*del)->type1));
-	ft_memdel((void**)(&(*del)->type2));
-	ft_memdel((void**)(&(*del)->type3));
-	ft_memdel((void**)(&(*del)->type0));
+	ft_memdel((void**)(&(*del)->arg[0]->type));
+	ft_memdel((void**)(&(*del)->arg[1]->type));
+	ft_memdel((void**)(&(*del)->arg[2]->type));
+	ft_memdel((void**)(&(*del)->arg[3]->type));
+	ft_memdel((void**)(&(*del)->arg[0]->data));
+	ft_memdel((void**)(&(*del)->arg[1]->data));
+	ft_memdel((void**)(&(*del)->arg[2]->data));
 	free(*del);
 }
 

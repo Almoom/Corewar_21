@@ -19,9 +19,18 @@
 # define TRUE 1
 # define FALSE 0
 
+typedef struct		s_ar
+{
+	char			*type;
+	int				dec;
+	char			*data;
+	int				len;
+}					t_ar;
+
 typedef struct		s_val
 {
 	struct s_val	*next;
+	struct s_val	*prev;
 	char			*line;
 	char			*data;
 	int				is_nm_start;
@@ -34,24 +43,12 @@ typedef struct		s_val
 	int				istxt;
 	int				iscmd;
 	int				n_cmd;
-	char			*type1;
-	char			*type2;
-	char			*type3;
-	char			*type0;
-	int				a1;
-	char			*da1;
-	int				la1;
-	int				a2;
-	char			*da2;
-	int				la2;
-	int				a3;
-	char			*da3;
-	int				la3;
+	t_ar			*arg[4];
+	int				ready_len;
 	int				ready;
 	int				islbl;
 	char			*n_lbl;
 }					t_val;
-
 
 
 /*

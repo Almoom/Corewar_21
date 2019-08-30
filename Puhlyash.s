@@ -10,15 +10,15 @@ oo
 	zjmp %:deb1
 	live %00001
 
-	live %1
+	live %3
 
-	live %1
+	live %6
 	live %1
 	live %:op
 	live %1
-	toto:live%1111
+toto:live%1111
 deb1:
-zjmp %:deb
+	zjmp %:deb
 	live%1 #------
 	live %1
 	live%1
@@ -27,16 +27,17 @@ zjmp %:deb
 	live%1
 
 	live %1 ;---------
-	live %1
+	live %:toto
 
 	live %1
 
 	live %1
 	live %1
-deb:fork %12
+deb:fork %155
 	ld %4, r0
 	ld :op,r0
 	live %1
 	aff r3
 	st r0,4
 op:
+vv:
