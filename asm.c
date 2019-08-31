@@ -503,6 +503,7 @@ int		scroll_chars(char *s, char *chars, int ch)
 			break ;
 		begin++;
 	}
+	//printf("%s -- %d\n", s, begin);
 	return (s[begin] == ch ? TRUE : FALSE);
 }
 
@@ -577,9 +578,6 @@ void	find_label_data(t_val *h)
 				h->line = ft_strjoin_free(h->line, t->line, 1, 0);
 			else
 			{
-				h->arg[0]->len = 2;
-				h->arg[1]->len = 2;
-				h->arg[2]->len = 2;
 				h->ready_len = 1;
 				h->ready = 1;
 			}
@@ -626,53 +624,6 @@ int		check_int(char *s)
 	return (TRUE);
 }
 
-// loop:
-//         sti r1, %:live, %1 1+1+1+2+2
-// live:
-//         live %0           1+4
-//         ld %0, r2         1+1+4+1
-//         zjmp %:loop //-19 1+2
-
-// void	parse_live(t_val *h, t_val *t)
-// {
-// 	int flag;
-//
-// 	flag = 0;
-// 	// if (h->line[0] == DIRECT_CHAR && ft_strnstr(h->line + 1, "0x", 2) && scroll_chars(h->line + 3, "0123456789", '\0'))
-// 	// 	printf("--%s\n", "16");
-// 	if (t->line[0] == DIRECT_CHAR && check_int(t->line + 1)
-// 	&& !ft_strchr(t->line, '+'))
-// 	{
-// 		t->a1 = ft_atoi(t->line + 1);
-// 		t->ready = 1;
-// 	}
-// 	if (t->line[0] == DIRECT_CHAR && t->line[1] == LABEL_CHAR
-// 	&& scroll_chars(h->line + 2, LABEL_CHARS, '\0'))
-// 	{
-// 		while (h)
-// 		{
-// 			if (ft_strcmp(h->n_lbl, t->line) && h->ready == 1)
-// 				;
-// 			h = h->next;
-// 		}
-// 	}
-// }
-//
-// void	parse_lbl_args(t_val *h)
-// {
-// 	t_val *t;
-//
-// 	t = h;
-// 	while (t)
-// 	{
-// 		if (t->n_cmd >= 0 && t->islbl == 1)
-// 		{
-// 			t->n_cmd == 1 ? parse_live(h, t) : 0;
-// 		}
-// 		t = t->next;
-// 	}
-// }
-
 int		check_lbl(t_val *h, char *s)
 {
 	while (h)
@@ -684,85 +635,161 @@ int		check_lbl(t_val *h, char *s)
 	return (FALSE);
 }
 
-// int		len_loner_reg(t_val *h, int cmd, char *s)
-// {
-// 	if (s[0] == 'r' && scroll_chars(s + 1, "0123456789", '\0')
-// 	&& ft_atoi(s + 1) <= REG_NUMBER )
-// 		return (g_tab_reg[cmd - 1][0] + g_tab_reg[cmd - 1][1] + 1);
-// 	return (0);
-// }
+int		find_down_lbl(t_val *h, t_val *t, int num, int shift)
+{
+	int count;
 
-int		find_byte_to_lbl(t_val *h, t_val *t, int num)
+	count = 0;
+	while (h)
+	{
+		if (h->islbl && !ft_strcmp(h->n_lbl, t->arg[num]->data + shift))
+			return (count);
+		count += h->len + h->arg[0]->len + h->arg[1]->len + h->arg[2]->len;
+		if (h->ready_len == 0)
+			return (FALSE);
+		h = h->next;
+	}
+	return (FALSE);
+}
+
+int		find_up_lbl(t_val *h, t_val *t, int num)
+{
+	int count;
+
+	count = 0;
+	while (h)
+	{
+		if (h == t)
+			return (-1 * count);
+		count += h->len + h->arg[0]->len + h->arg[1]->len + h->arg[2]->len;
+		if (h->ready_len == 0)
+			return (FALSE);
+		h = h->next;
+	}
+	return (FALSE);
+}
+
+int		find_byte_to_lbl(t_val *h, t_val *t, int num, int shift)
 {
 	while (h)
 	{
 		if (h == t)
-		{
-			while (h)
-			{
-				if (h->islbl && !ft_strcmp(h->n_lbl, t->arg[num]->data + 2))
-					return (TRUE);
-				if (h->ready_len == 0)
-					return (FALSE);
-				h = h->next;
-			}
-		}
-		if (h->islbl && !ft_strcmp(h->n_lbl, t->arg[num]->data + 2))
-		{
-			while (h)
-			{
-				if (h == t)
-					return (TRUE);
-				if (h->ready_len == 0)
-					return (FALSE);
-				h = h->next;
-			}
-		}
+			return (find_down_lbl(h, t, num, shift));
+		if (h->islbl && !ft_strcmp(h->n_lbl, t->arg[num]->data + shift))
+			return (find_up_lbl(h, t, num));
 		if (h)
 			h = h->next;
 	}
 	return (FALSE);
 }
 
-void	read_dir(t_val *h, t_val *t, int num)
+int		read_reg(t_val *t, int num)
 {
-	if (t->arg[num]->data[0] == DIRECT_CHAR && scroll_chars
-	(t->arg[num]->data + 1, "0123456789", '\0'))
+	if (t->arg[num]->data[0] == 'r'
+	&& scroll_chars(t->arg[num]->data + 1, "0123456789", '\0')
+	&& (ft_strlen(t->arg[num]->data) == 3
+	|| ft_strlen(t->arg[num]->data) == 2)
+	&& ft_strcmp(t->arg[num]->data, "r0")
+	&& ft_strcmp(t->arg[num]->data, "r00"))
 	{
+		t->arg[num]->len = 1;
 		t->arg[num]->dec = ft_atoi(t->arg[num]->data + 1);
+		free(t->arg[num]->type);
+		t->arg[num]->type = ft_strdup("01");
+	}
+	else
+		return (FALSE);
+	return (TRUE);
+}
+
+int		read_dir(t_val *h, t_val *t, int num)
+{
+	if (t->arg[num]->data[0] == DIRECT_CHAR
+	&& scroll_chars(t->arg[num]->data + 1, "0123456789", '\0'))
+	{
 		t->arg[num]->len = g_tab_reg[t->n_cmd - 1][1];
-		t->ready_len = 1;
-		t->ready = 1;
+		t->arg[num]->dec = ft_atoi(t->arg[num]->data + 1);
+		if (g_tab_reg[t->n_cmd - 1][0])
+		{
+			free(t->arg[num]->type);
+			t->arg[num]->type = ft_strdup("10");
+		}
 	}
 	else if (t->arg[num]->data[0] == DIRECT_CHAR
 	&& t->arg[num]->data[1] == LABEL_CHAR
-	&& scroll_chars(t->arg[num]->data + 2, LABEL_CHARS, '\0')
 	&& check_lbl(h, t->arg[num]->data + 2))
 	{
 		t->arg[num]->len = g_tab_reg[t->n_cmd - 1][1];
-		t->ready_len = 1;
-		if (find_byte_to_lbl(h, t, num))
+		t->arg[num]->dec = find_byte_to_lbl(h, t, num, 2);
+		if (g_tab_reg[t->n_cmd - 1][0])
 		{
-			//заполняем значение %:метка и ставим ready!
-			t->ready = 1;
+			free(t->arg[num]->type);
+			t->arg[num]->type = ft_strdup("10");
 		}
 	}
 	else
-		ft_putendl("Невалидный аргумент T_DIR");
+		return (FALSE);
+	return (TRUE);
+}
+
+int		read_ind(t_val *h, t_val *t, int num)
+{
+	if (scroll_chars(t->arg[num]->data, "0123456789", '\0'))
+	{
+		t->arg[num]->len = 2;
+		t->arg[num]->dec = ft_atoi(t->arg[num]->data);
+		if (g_tab_reg[t->n_cmd - 1][0])
+		{
+			free(t->arg[num]->type);
+			t->arg[num]->type = ft_strdup("11");
+		}
+	}
+	else if (t->arg[num]->data[0] == LABEL_CHAR
+	&& check_lbl(h, t->arg[num]->data + 1))
+	{
+		t->arg[num]->len = 2;
+		t->arg[num]->dec = find_byte_to_lbl(h, t, num, 1);
+		if (g_tab_reg[t->n_cmd - 1][0])
+		{
+			free(t->arg[num]->type);
+			t->arg[num]->type = ft_strdup("11");
+		}
+	}
+	else
+		return (FALSE);
+	return (TRUE);
+}
+
+void	print_error(t_val *t)
+{
+	t->islbl = 0;
+	t->iscmd = 0;
+	ft_putstr("Невалидные аргументы: ");
+	if (t->line)
+		ft_putendl(t->line);
+	else
+		ft_putendl("пустая line");
+}
+
+void	check_ready(t_val *t)
+{
+	t->ready_len = 1;
+	if (t->data)
+		t->ready = 1;
 }
 
 void	read_args(t_val *h, t_val *t)
 {
-	// int len;
-	//
-	// len = 0;
-
 	if (t->n_cmd == 1 || t->n_cmd == 9 || t->n_cmd == 12 || t->n_cmd == 15)
-		read_dir(h, t, 0);
+		!read_dir(h, t, 0) ? print_error(t) : check_ready(t);
 	if (t->n_cmd == 16)
-		;//read_reg(h, 1);
-	// if (cmd == 2)
-	// 	return (len_ld(h, cmd, s));
+		!read_reg(t, 0) ? print_error(t) : check_ready(t);
+	if (t->n_cmd == 4 || t->n_cmd == 5)
+		(!read_reg(t, 0) || !read_reg(t, 1) || !read_reg(t, 2))
+		? print_error(t) : check_ready(t);
+	if (t->n_cmd == 2 || t->n_cmd == 13)
+		((!read_dir(h, t, 0) && !read_ind(h, t, 0)) || !read_reg(t, 1))
+		? print_error(t) : check_ready(t);
 
 }
 
@@ -835,29 +862,30 @@ int		build_byte_types(t_val *h)
 
 void	build_0x(t_val *h)
 {
+	free(h->data);
 	h->data = ft_strdup("0x");
 	h->data = ft_strjoin_free(h->data, ft_itoa_16(h->n_cmd, 2), 1, 1);
 	if (h->n_cmd > 0 && g_tab_reg[h->n_cmd - 1][0] != 0)
 		h->data = ft_strjoin_free(h->data, ft_itoa_16
 		(build_byte_types(h), 2), 1, 1);
 	h->data = ft_strjoin_free(h->data, ft_itoa_16
-	(h->arg[0]->dec, h->arg[0]->len), 1, 1);
+	(h->arg[0]->dec, h->arg[0]->len * 2), 1, 1);
 	h->data = ft_strjoin_free(h->data, ft_itoa_16
-	(h->arg[1]->dec, h->arg[1]->len), 1, 1);
+	(h->arg[1]->dec, h->arg[1]->len * 2), 1, 1);
 	h->data = ft_strjoin_free(h->data, ft_itoa_16
-	(h->arg[2]->dec, h->arg[2]->len), 1, 1);
+	(h->arg[2]->dec, h->arg[2]->len * 2), 1, 1);
 }
 
-int		check_ready(t_val *h)
+int		check_ready_all(t_val *h)
 {
 	int flag;
 
 	flag = 0;
 	while (h)
 	{
-		if ((h->iscmd == 1 || h->islbl == 1) && h->ready == 0)
+		if ((h->iscmd == 1 || h->islbl == 1) && h->ready_len == 0)
 			flag = 1;
-		if ((h->iscmd == 1 || h->islbl == 1) && h->ready == 1 && !(h->data))
+		if ((h->iscmd == 1 || h->islbl == 1) && h->ready_len && h->len > 0)
 			build_0x(h);
 		h = h->next;
 	}
@@ -904,34 +932,36 @@ void	split_by_comma(t_val *h)
 	}
 }
 
-void	substitution_lbl_ind(t_val *a, t_val *b)
-{
-	t_val *t;
-	int i;
-
-	t = b;
-	while (a)
-	{
-		while (b)
-		{
-			i = 0;
-			while (i < 3)
-			{
-				if (a->arg[i]->data && b->ready && b->islbl
-				&& !ft_strcmp(a->arg[i]->data + 1, b->n_lbl)
-				&& a->arg[i]->data[0] == LABEL_CHAR)
-				{
-					free(a->arg[i]->data);
-					a->arg[i]->data = ft_strdup(b->data);
-				}
-				i++;
-			}
-			b = b->next;
-		}
-		b = t;
-		a = a->next;
-	}
-}
+// void	substitution_lbl_ind(t_val *a, t_val *b)
+// {
+// 	t_val *t;
+// 	int i;
+//
+// 	t = b;
+// 	while (a)
+// 	{
+// 		printf("%s\n", a->line);
+// 		while (b)
+// 		{
+// 			i = 0;
+// 			while (i < 3)
+// 			{
+// 				if (a->arg[i]->data && b->ready && b->islbl
+// 				&& !ft_strcmp(a->arg[i]->data + 1, b->n_lbl)
+// 				&& a->arg[i]->data[0] == LABEL_CHAR)
+// 				{
+//
+// 					// free(a->arg[i]->data);
+// 					// a->arg[i]->data = ft_strdup(b->data);
+// 				}
+// 				i++;
+// 			}
+// 			b = b->next;
+// 		}
+// 		b = t;
+// 		a = a->next;
+// 	}
+// }
 
 void	check_dubl_labal(t_val *a, t_val *b)
 {
@@ -995,15 +1025,22 @@ void	parse_commands(t_val *h)
 	split_by_comma(h);
 	cut_space(h);
 
-	if /*while*/(check_ready(h))
+	if /*while*/(check_ready_all(h))
 	{
-
-		substitution_lbl_ind(h, h);
-
+		//substitution_lbl_ind(h, h);
+		read_command(h);
+	}
+	if /*while*/(check_ready_all(h))
+	{
+		//substitution_lbl_ind(h, h);
+		read_command(h);
+	}
+	if /*while*/(check_ready_all(h))
+	{
+		//substitution_lbl_ind(h, h);
 		read_command(h);
 	}
 	printer_valid(h);
-
 	//parse_lbl_args(h);
 }
 
