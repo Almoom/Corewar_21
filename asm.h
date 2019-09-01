@@ -32,6 +32,7 @@ typedef struct		s_val
 	struct s_val	*next;
 	struct s_val	*prev;
 	char			*line;
+	char			*error_l;
 	char			*data;
 	int				is_nm_start;
 	int				is_nm_middle;
@@ -44,8 +45,7 @@ typedef struct		s_val
 	int				iscmd;
 	int				n_cmd;
 	t_ar			*arg[4];
-	int				ready_len;
-	int				ready;
+	int				r;
 	int				islbl;
 	char			*n_lbl;
 }					t_val;
