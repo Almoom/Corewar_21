@@ -12,6 +12,7 @@
 
 #include "asm.h"
 #include "op.h"
+#include <string.h>
 
 char *g_tab_com[16] =
 {
@@ -56,7 +57,7 @@ int g_tab_reg[16][2] =
 void	printer_valid(t_val *head)
 {
 	//ft_putendl("nm1\tnm2\tnm3\tcom1\tcom2\tcom3\tlen\ttxt\tcmd\t№\ta1\ta2\ta3\tx0\tready\tlbl\tname\tdata\tline\n");
-	ft_putendl("cmd\t№\tlen\ttype\t\ta1\tda1\tlen1\ta2\tda2\tlen2\ta3\tda3\tlen3\tready_l\tlbl\tname\tdata\t\tline\n");
+	ft_putendl("cmd\t№\tlen\ttype\t\tt_i\ta1\tda1\tlen1\ta2\tda2\tlen2\ta3\tda3\tlen3\tready_l\tlbl\tname\tdata\t\tline\n");
 	while (head)
 	{
 		// ft_putnbr(head->is_nm_start);
@@ -85,6 +86,8 @@ void	printer_valid(t_val *head)
 			head->arg[1]->type ? ft_putstr(head->arg[1]->type) : ft_putstr("  ");
 			head->arg[2]->type ? ft_putstr(head->arg[2]->type) : ft_putstr("  ");
 			head->arg[3]->type ? ft_putstr(head->arg[3]->type) : ft_putstr("  ");
+			ft_putstr("\t");
+			ft_putnbr(head->type);
 			ft_putstr("\t");
 			ft_putnbr(head->arg[0]->dec);
 			ft_putstr("\t");
@@ -561,30 +564,6 @@ void	write_command_num(t_val *h)
 	}
 }
 
-void	find_label_data(t_val *h)
-{
-	t_val *t;
-
-	while (h)
-	{
-		if (h->islbl == 1 && !(h->line))
-		{
-			t = h;
-			while (t)
-			{
-				if (t->islbl != 1)
-					break ;
-				t = t->next;
-			}
-			if (t)
-				h->line = ft_strjoin_free(h->line, t->line, 1, 0);
-			else
-				h->r = 1;
-		}
-		h = h->next;
-	}
-}
-
 void	find_label(t_val *h)
 {
 	char t[1];
@@ -603,6 +582,8 @@ void	find_label(t_val *h)
 				h->line = skip_chars_at_first(h->line, t);
 			if (h->line)
 				h->line = skip_chars_at_first(h->line, " 	");
+			if (!h->line)
+				h->r = 1;
 		}
 		h = h->next;
 	}
@@ -632,6 +613,113 @@ int		check_lbl(t_val *h, char *s)
 		h = h->next;
 	}
 	return (FALSE);
+}
+
+char	*ft_strnrev_free(char *s, int count, int flag)
+{
+	char	*t;
+	int		i;
+	int		k;
+
+	if (!s)
+		return (NULL);
+	i = ft_strlen(s);
+	k = count - i;
+	t = ft_strnew(count + 1);
+	ft_memset(t, '0', count);
+	while (k < count)
+	{
+		t[k] = s[i - 1];
+		k++;
+		i--;
+	}
+	flag == 1 ? free(s) : 0;
+	return (t);
+}
+
+char	*ft_itoa_16(int n, int count)
+{
+	char *s;
+	char arr[2] = {0, 0};
+	unsigned int num;
+
+	num = (unsigned int)n;
+	s = ft_strnew(0);
+	while(num > 0)
+	{
+		arr[0] = num % 16 + (num % 16 > 9 ? 'a' - 10 : '0');
+		s = ft_strjoin_free(s, arr, 1, 0);
+		num /= 16;
+	}
+	return (s = ft_strnrev_free(s, count, 1));
+}
+
+int		build_dec_from_bytes(char *s)
+{
+	int rez;
+	int len;
+	int i;
+
+	rez = 0;
+	i = ft_strlen(s) - 1;
+	len = ft_strlen(s) - 1;
+	while (i >= 0)
+	{
+		if (s[i] == '1')
+			rez += ft_power(2, len - i);
+		i--;
+	}
+	return (rez);
+}
+
+int		build_byte_types(t_val *h)
+{
+	char *rez;
+	int i;
+
+	rez = NULL;
+	i = 0;
+	while (i < 4)
+	{
+		rez = ft_strjoin_free(rez, h->arg[i]->type, 1, 0);
+		i++;
+	}
+	return (build_dec_from_bytes(rez));
+}
+
+void	build_0x(t_val *h)
+{
+	free(h->data);
+	h->data = ft_strdup("0x");
+	h->data = ft_strjoin_free(h->data, ft_itoa_16(h->n_cmd, 2), 1, 1);
+	if (h->n_cmd > 0 && g_tab_reg[h->n_cmd - 1][0] != 0)
+	{
+		h->type = build_byte_types(h);
+		h->data = ft_strjoin_free(h->data, ft_itoa_16
+		(h->type, 2), 1, 1);
+	}
+	h->data = ft_strjoin_free(h->data, ft_itoa_16
+	(h->arg[0]->dec, h->arg[0]->len * 2), 1, 1);
+	h->data = ft_strjoin_free(h->data, ft_itoa_16
+	(h->arg[1]->dec, h->arg[1]->len * 2), 1, 1);
+	h->data = ft_strjoin_free(h->data, ft_itoa_16
+	(h->arg[2]->dec, h->arg[2]->len * 2), 1, 1);
+}
+
+int		not_valid_arg(t_val *t)
+{
+	t->islbl = 0;
+	t->iscmd = 0;
+	ft_putstr("Lexical error at ");
+	if (t->error_l)
+		ft_putendl(t->error_l);
+	return (1);
+}
+
+int		valid_args(t_val *t)
+{
+	t->r = 1;
+	return (0);
 }
 
 int		find_down_lbl(t_val *h, t_val *t, int num, int shift)
@@ -762,110 +850,6 @@ int		ind(t_val *h, t_val *t, int num, int dec)
 	return (TRUE);
 }
 
-char	*ft_strnrev_free(char *s, int count, int flag)
-{
-	char	*t;
-	int		i;
-	int		k;
-
-	if (!s)
-		return (NULL);
-	i = ft_strlen(s);
-	k = count - i;
-	t = ft_strnew(count + 1);
-	ft_memset(t, '0', count);
-	while (k < count)
-	{
-		t[k] = s[i - 1];
-		k++;
-		i--;
-	}
-	flag == 1 ? free(s) : 0;
-	return (t);
-}
-
-char	*ft_itoa_16(int n, int count)
-{
-	char *s;
-	char arr[2] = {0, 0};
-	unsigned int num;
-
-	num = (unsigned int)n;
-	s = ft_strnew(0);
-	while(num > 0)
-	{
-		arr[0] = num % 16 + (num % 16 > 9 ? 'a' - 10 : '0');
-		s = ft_strjoin_free(s, arr, 1, 0);
-		num /= 16;
-	}
-	return (s = ft_strnrev_free(s, count, 1));
-}
-
-int		build_dec_from_bytes(char *s)
-{
-	int rez;
-	int len;
-	int i;
-
-	rez = 0;
-	i = ft_strlen(s) - 1;
-	len = ft_strlen(s) - 1;
-	while (i >= 0)
-	{
-		if (s[i] == '1')
-			rez += ft_power(2, len - i);
-		i--;
-	}
-	return (rez);
-}
-
-int		build_byte_types(t_val *h)
-{
-	char *rez;
-	int i;
-
-	rez = NULL;
-	i = 0;
-	while (i < 4)
-	{
-		rez = ft_strjoin_free(rez, h->arg[i]->type, 1, 0);
-		i++;
-	}
-	return (build_dec_from_bytes(rez));
-}
-
-void	build_0x(t_val *h)
-{
-	free(h->data);
-	h->data = ft_strdup("0x");
-	h->data = ft_strjoin_free(h->data, ft_itoa_16(h->n_cmd, 2), 1, 1);
-	if (h->n_cmd > 0 && g_tab_reg[h->n_cmd - 1][0] != 0)
-		h->data = ft_strjoin_free(h->data, ft_itoa_16
-		(build_byte_types(h), 2), 1, 1);
-	h->data = ft_strjoin_free(h->data, ft_itoa_16
-	(h->arg[0]->dec, h->arg[0]->len * 2), 1, 1);
-	h->data = ft_strjoin_free(h->data, ft_itoa_16
-	(h->arg[1]->dec, h->arg[1]->len * 2), 1, 1);
-	h->data = ft_strjoin_free(h->data, ft_itoa_16
-	(h->arg[2]->dec, h->arg[2]->len * 2), 1, 1);
-}
-
-int		not_valid_arg(t_val *t)
-{
-	t->islbl = 0;
-	t->iscmd = 0;
-	ft_putstr("ERROR: ");
-	if (t->error_l)
-		ft_putendl(t->error_l);
-	return (1);
-}
-
-int		valid_args(t_val *t)
-{
-	t->r = 1;
-	return (0);
-}
-
 int		read_args_add
 (t_val *h, t_val *t, int (*err)(t_val*), int (*rght)(t_val*))
 {
@@ -959,7 +943,7 @@ void	split_by_comma(t_val *h)
 	}
 }
 
-void	check_dubl_labal(t_val *a, t_val *b)
+void	check_dubl_label(t_val *a, t_val *b)
 {
 	t_val *t;
 
@@ -975,11 +959,6 @@ void	check_dubl_labal(t_val *a, t_val *b)
 		b = t;
 		a = a->next;
 	}
-}
-
-void 	print_error_champ(int flag)
-{
-	ft_putendl(!flag ? "ERROR .name" : "ERROR .comment");
 }
 
 int		check_champ(t_val *h, int max, int flag)
@@ -1007,7 +986,6 @@ int		check_champ(t_val *h, int max, int flag)
 		}
 		h = h->next;
 	}
-	count == 2 && len <= max ? 0 : print_error_champ(flag);
 	return ((count == 2 && len <= max) ? TRUE : FALSE);
 }
 
@@ -1044,7 +1022,7 @@ void	ft_value_in_memory(char *memory, int pos, int value, int size)
 	}
 }
 
-void	write_file(int fd, int pos, int value, int size)
+void	write_int(int fd, int pos, int value, int size)
 {
 	char s[1000];
 	int i;
@@ -1085,22 +1063,42 @@ void	write_text(int fd, t_val *h, int flag, int max)
 	}
 }
 
+void	write_cmds(int fd, t_val *h)
+{
+	while (h)
+	{
+		if (h->n_cmd > 0)
+		{
+			write_int(fd, 0, h->n_cmd, 1);
+			if (g_tab_reg[h->n_cmd - 1][0] == 1)
+				write_int(fd, 0, h->type, 1);
+			if (h->arg[0]->data)
+				write_int(fd, 0, h->arg[0]->dec, h->arg[0]->len);
+			if (h->arg[1]->data)
+				write_int(fd, 0, h->arg[1]->dec, h->arg[1]->len);
+			if (h->arg[2]->data)
+				write_int(fd, 0, h->arg[2]->dec, h->arg[2]->len);
+		}
+		h = h->next;
+	}
+}
+
 void	creat_file(t_val *h, char *name, int code_size)
 {
 	int fd;
 
 	if ((fd = open(name, O_RDWR | O_CREAT | O_APPEND | O_TRUNC)) < 0)
 		return ;
-	write_file(fd, 0, COREWAR_EXEC_MAGIC, 4);
+	write_int(fd, 0, COREWAR_EXEC_MAGIC, 4);
 	write_text(fd, h, 0, PROG_NAME_LENGTH);
-	write_file(fd, 0, 0, 4);
-	write_file(fd, 0, code_size, 4);
+	write_int(fd, 0, 0, 4);
+	write_int(fd, 0, code_size, 4);
 	write_text(fd, h, 1, COMMENT_LENGTH);
-	//переводим все 0х в инты и учитывая размерности? вписываем
-
-
-
+	write_int(fd, 0, 0, 4);
+	write_cmds(fd, h);
 	close(fd);
+	ft_putstr("Writing output program to ");
+	ft_putendl(name);
 }
 
 int		code_size(t_val *h)
@@ -1115,47 +1113,6 @@ int		code_size(t_val *h)
 		h = h->next;
 	}
 	return (rez);
-}
-
-void	parse_commands(t_val *h, char *name)
-{
-	char *newname;
-	int size;
-
-	size = 0;
-	newname = ft_strjoin_free
-	(ft_strndup(name, ft_strlen(name) - 3), ".cor", 1, 0);
-	split_by_comma(h);
-	cut_space(h);
-	if (read_cmd(h, &not_valid_arg, &valid_args, 0))
-		return ;
-	read_cmd(h, &rght_null, &rght_null, 1);
-	if (!check_all(h) && (size = code_size(h)) <= CHAMP_MAX_SIZE)
-		creat_file(h, newname, size);
-	free(newname);
-	//printer_valid(h);////////////////
-}
-
-void	vocabulary(t_val *h, char *quote1, char *quote2, char *name)
-{
-	find_begin_champ(h, NAME_CMD_STRING, 0);
-	find_begin_champ(h, COMMENT_CMD_STRING, 1);
-	find_middle_champ(h, 0);
-	find_middle_champ(h, 1);
-	find_end_champ(h, 0);
-	find_end_champ(h, 1);
-	write_content(h, quote1, quote2);
-	cut_space(h);
-	find_label(h);
-	check_dubl_labal(h, h);
-	find_label_data(h);
-	write_command_num(h);
-	if (check_champ(h, PROG_NAME_LENGTH, 0) && check_champ(h, COMMENT_LENGTH, 1)
-	&& !check_all(h))
-		parse_commands(h, name);
-	// else
-	// 	ft_putendl
-	// 	("ошибка лексики имени/комментария/названия метки/названия команды");
 }
 
 void	del_list_valid(t_val **del)
@@ -1186,34 +1143,6 @@ void	del_roll_valid(t_val **head)
 		del_list_valid(head);
 		*head = tmp;
 	}
-}
-
-void	create_valid_roll(char *s, char *quote1, char *quote2, char *name)
-{
-	char	**t;
-	int		i;
-	t_val	*head;
-	int		count;
-
-	t = ft_strsplit(s, '\n');
-	i = 0;
-	head = NULL;
-	count = 0;
-	while (t[i])
-	{
-		count += count_chars(t[i], '\"');
-		if (scroll_spaces(t[i], count))
-		{
-			if (!head)
-				head = create_list_valid(t[i]);
-			else
-				head = creator_valid(head, t[i]);
-		}
-		i++;
-	}
-	del_split(&t);
-	vocabulary(head, quote1, quote2, name);
-	del_roll_valid(&head);
 }
 
 char	*find_quote(char *s, int ch, int n1, int n2)
@@ -1261,6 +1190,113 @@ int		check_last_nl(char *s)
 	return (FALSE);
 }
 
+void	parse_commands(t_val *h, char *name)
+{
+	char *newname;
+	int size;
+
+	size = 0;
+	newname = ft_strjoin_free
+	(ft_strndup(name, ft_strlen(name) - 3), ".cor", 1, 0);
+	split_by_comma(h);
+	cut_space(h);
+	if (read_cmd(h, &not_valid_arg, &valid_args, 0))
+		return ;
+	read_cmd(h, &rght_null, &rght_null, 1);
+	if (!check_all(h))
+	{
+	 	if (((size = code_size(h))) <= CHAMP_MAX_SIZE)
+			creat_file(h, newname, size);
+		else
+			ft_putendl("Champion code too long (Max length 682)");
+	}
+	free(newname);
+	//printer_valid(h);/////////////////////////////////////////////////////
+}
+
+void	vocabulary(t_val *h, char *quote1, char *quote2, char *name)
+{
+	find_begin_champ(h, NAME_CMD_STRING, 0);
+	find_begin_champ(h, COMMENT_CMD_STRING, 1);
+	find_middle_champ(h, 0);
+	find_middle_champ(h, 1);
+	find_end_champ(h, 0);
+	find_end_champ(h, 1);
+	write_content(h, quote1, quote2);
+	cut_space(h);
+	find_label(h);
+	check_dubl_label(h, h);
+	write_command_num(h);
+	if (!check_champ(h, PROG_NAME_LENGTH, 0))
+		ft_putendl("Champion name too long (Max length 128)");
+	else if (!check_champ(h, COMMENT_LENGTH, 1))
+		ft_putendl("Champion comment too long (Max length 2048)");
+	else if (!check_all(h))
+		parse_commands(h, name);
+}
+
+void	create_valid_roll(char *s, char *quote1, char *quote2, char *name)
+{
+	char	**t;
+	int		i;
+	t_val	*head;
+	int		count;
+
+	t = ft_strsplit(s, '\n');
+	i = 0;
+	head = NULL;
+	count = 0;
+	while (t[i])
+	{
+		count += count_chars(t[i], '\"');
+		if (scroll_spaces(t[i], count))
+		{
+			if (!head)
+				head = create_list_valid(t[i]);
+			else
+				head = creator_valid(head, t[i]);
+		}
+		i++;
+	}
+	del_split(&t);
+	vocabulary(head, quote1, quote2, name);
+	del_roll_valid(&head);
+}
+
+void	print_error_endfile(char *s)
+{
+	int count;
+	int i;
+
+	count = ft_strlen(s) - 1;
+	i = 1;
+	ft_putstr("Syntax error at token [TOKEN][");
+	if (count_chars(s, '\n') + 1 < 100)
+		ft_putchar('0');
+	if (count_chars(s, '\n') + 1 < 10)
+		ft_putchar('0');
+	ft_putnbr(count_chars(s, '\n') + 1);
+	ft_putchar(':');
+	while (s[count] != '\n')
+	{
+		i++;
+		count--;
+	}
+	if (i < 100)
+		ft_putchar('0');
+	if (i < 10)
+		ft_putchar('0');
+	ft_putnbr(i);
+	ft_putendl("] END \"(null)\"");
+}
+
+void 	print_error_args(int ac)
+{
+	ft_putstr("Wrong number of arguments (given ");
+	ft_putnbr(ac - 1);
+	ft_putendl(", expected 1)");
+}
+
 int		main(int ac, char **av)
 {
 	char *s;
@@ -1279,12 +1315,13 @@ int		main(int ac, char **av)
 			create_valid_roll(s, quote1, quote2, av[1]);
 		}
 		else
-			ft_putendl("ERROR: no newline at the end of the file");
+			print_error_endfile(s);
 		free(s);
 	}
 	else if (ac != 2)
-		ft_putendl("ERROR: invalid number of files");
+		print_error_args(ac);
 	else
-		ft_putendl("ERROR: not find .s file");
+		ft_putendl
+		("Syntax error at token [TOKEN][001:001] INDIRECT \"0000890\"");
 	return (0);
 }

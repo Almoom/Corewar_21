@@ -34,6 +34,7 @@ typedef struct		s_val
 	char			*line;
 	char			*error_l;
 	char			*data;
+	int				type;
 	int				is_nm_start;
 	int				is_nm_middle;
 	int				is_nm_end;
