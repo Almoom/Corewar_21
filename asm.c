@@ -57,7 +57,7 @@ int g_tab_reg[16][2] =
 void	printer_valid(t_val *head)
 {
 	//ft_putendl("nm1\tnm2\tnm3\tcom1\tcom2\tcom3\tlen\ttxt\tcmd\t№\ta1\ta2\ta3\tx0\tready\tlbl\tname\tdata\tline\n");
-	ft_putendl("cmd\t№\tlen\ttype\t\tt_i\ta1\tda1\tlen1\ta2\tda2\tlen2\ta3\tda3\tlen3\tready_l\tlbl\tname\tdata\t\tline\n");
+	ft_putendl("txt\tcmd\t№\tlen\ttype\t\tt_i\ta1\tda1\tlen1\ta2\tda2\tlen2\ta3\tda3\tlen3\tready_l\tlbl\tname\tdata\t\tline\n");
 	while (head)
 	{
 		// ft_putnbr(head->is_nm_start);
@@ -71,11 +71,11 @@ void	printer_valid(t_val *head)
 		// ft_putnbr(head->is_cmnt_middle);
 		// ft_putstr("\t");
 		// ft_putnbr(head->is_cmnt_end);
-		// ft_putstr("\t");
-		// ft_putnbr(head->istxt);
-		// ft_putstr("\t");
-		if (head->istxt == 0)
-		{
+		//ft_putstr("\t");
+		ft_putnbr(head->istxt);
+		ft_putstr("\t");
+		// if (head->istxt == 0)
+		// {
 			ft_putnbr(head->iscmd);
 			ft_putstr("\t");
 			ft_putnbr(head->n_cmd);
@@ -116,7 +116,7 @@ void	printer_valid(t_val *head)
 			head->data ? ft_putstr(head->data) : 0;
 			ft_putstr("\t\t");
 			head->line ? ft_putendl(head->line) : ft_putchar('\n');
-		}
+		//}
 		head = head->next;
 	}
 }
@@ -128,9 +128,9 @@ char	*skip_chars_at_first(char *s, char *chars)
 	int		flag;
 	char	*tmp;
 
-	begin = 0;
+	begin = -1;
 	tmp = NULL;
-	while (s[begin])
+	while (s[++begin])
 	{
 		i = -1;
 		flag = 0;
@@ -139,10 +139,12 @@ char	*skip_chars_at_first(char *s, char *chars)
 				flag = 1;
 		if (flag == 0)
 			break ;
-		begin++;
 	}
 	if (*(s + begin) == '\0')
+	{
+		free(s);
 		return (NULL);
+	}
 	tmp = ft_strdup(s + begin);
 	free(s);
 	return (tmp);
@@ -154,15 +156,12 @@ char	*ft_strndup(const char *src, size_t n)
 	size_t	i;
 
 	i = 0;
-	if (!(s = (char*)malloc(sizeof(*src) * (ft_strlen(src) + 1)))
-		|| ft_strlen(src) == 9223372036854775807)
-		return (NULL);
-	while (src[i] && i <= n)
+	s = ft_strnew(n);
+	while (src[i] && i < n)
 	{
 		s[i] = src[i];
 		i++;
 	}
-	s[i] = '\0';
 	return (s);
 }
 
@@ -186,7 +185,7 @@ char	*skip_chars_from_end(char *s, char *chars)
 			break ;
 		end--;
 	}
-	tmp = ft_strndup(s, end);
+	tmp = ft_strndup(s, end + 1);
 	free(s);
 	return (tmp);
 }
@@ -257,19 +256,21 @@ char	*del_comments(char *s)
 	return (t);
 }
 
-t_val	*create_list_valid(char *s)
+t_val	*create_list_valid(char *s, char *all)
 {
 	t_val *list;
 	int i;
 
 	i = 0;
-	if (!(list = (t_val*)ft_memalloc(sizeof(*list))))
+	if (!(list = (t_val*)ft_memalloc(sizeof(t_val))))
 		return (NULL);
 	list->line = ft_strdup(s);
 	list->error_l = ft_strdup(s);
+	//if (all)
+	//	list->all = ft_strdup(all);
 	while (i < 4)
 	{
-		if (!(list->arg[i] = (t_ar*)ft_memalloc(sizeof(*list->arg[i]))))
+		if (!(list->arg[i] = (t_ar*)ft_memalloc(sizeof(t_ar))))
 			return (NULL);
 		i++;
 	}
@@ -284,11 +285,8 @@ t_val	*creator_valid(t_val *head, char *s)
 	tmp = head;
 	list = NULL;
 	while (head->next)
-	{
-		list = head;
 		head = head->next;
-	}
-	list = create_list_valid(s);
+	list = create_list_valid(s, NULL);
 	head->next = list;
 	list->prev = head;
 	return (tmp);
@@ -440,7 +438,7 @@ void	write_content(t_val *h, char *quote1, char *quote2)
 	{
 		if (((h)->is_cmnt_start == 1 || (h)->is_nm_start == 1) && flag == 0)
 		{
-			(h)->data = ft_strdup(quote1);
+			(h)->data = quote1 ? ft_strdup(quote1) : ft_strnew(0);
 			(h)->len = ft_strlen(quote1);
 			free(quote1);
 			flag = 1;
@@ -448,7 +446,7 @@ void	write_content(t_val *h, char *quote1, char *quote2)
 		if (((h)->is_cmnt_start == 1 || (h)->is_nm_start == 1)
 		&& flag == 1 && !(h)->data)
 		{
-			(h)->data = ft_strdup(quote2);
+			(h)->data = quote2 ? ft_strdup(quote2) : ft_strnew(0);
 			(h)->len = ft_strlen(quote2);
 			free(quote2);
 			break ;
@@ -576,7 +574,7 @@ void	find_label(t_val *h)
 		{
 			h->islbl = 1;
 			h->n_lbl = ft_strndup
-			(h->line, ft_strchr(h->line, LABEL_CHAR) - h->line - 1);
+			(h->line, ft_strchr(h->line, LABEL_CHAR) - h->line);
 			h->line = skip_chars_at_first(h->line, LABEL_CHARS);
 			if ((h->line[1] && h->line[1] != LABEL_CHAR) || h->line[1] == '\0')
 				h->line = skip_chars_at_first(h->line, t);
@@ -669,6 +667,7 @@ int		build_dec_from_bytes(char *s)
 			rez += ft_power(2, len - i);
 		i--;
 	}
+	free(s);
 	return (rez);
 }
 
@@ -684,26 +683,35 @@ int		build_byte_types(t_val *h)
 		rez = ft_strjoin_free(rez, h->arg[i]->type, 1, 0);
 		i++;
 	}
+	//printf("%s\n", rez);
 	return (build_dec_from_bytes(rez));
 }
 
 void	build_0x(t_val *h)
 {
-	free(h->data);
-	h->data = ft_strdup("0x");
-	h->data = ft_strjoin_free(h->data, ft_itoa_16(h->n_cmd, 2), 1, 1);
-	if (h->n_cmd > 0 && g_tab_reg[h->n_cmd - 1][0] != 0)
+	//ft_putendl(h->error_l);
+	//free(h->data);
+	while (h)
 	{
-		h->type = build_byte_types(h);
-		h->data = ft_strjoin_free(h->data, ft_itoa_16
-		(h->type, 2), 1, 1);
+		if (!h->istxt)
+		{
+			h->data = ft_strdup("0x");
+			h->data = ft_strjoin_free(h->data, ft_itoa_16(h->n_cmd, 2), 1, 1);
+			if (h->n_cmd > 0 && g_tab_reg[h->n_cmd - 1][0] != 0)
+			{
+				h->type = build_byte_types(h);
+				h->data = ft_strjoin_free
+				(h->data, ft_itoa_16(h->type, 2), 1, 1);
+			}
+			h->data = ft_strjoin_free(h->data, ft_itoa_16
+			(h->arg[0]->dec, h->arg[0]->len * 2), 1, 1);
+			h->data = ft_strjoin_free(h->data, ft_itoa_16
+			(h->arg[1]->dec, h->arg[1]->len * 2), 1, 1);
+			h->data = ft_strjoin_free(h->data, ft_itoa_16
+			(h->arg[2]->dec, h->arg[2]->len * 2), 1, 1);
+		}
+		h = h->next;
 	}
-	h->data = ft_strjoin_free(h->data, ft_itoa_16
-	(h->arg[0]->dec, h->arg[0]->len * 2), 1, 1);
-	h->data = ft_strjoin_free(h->data, ft_itoa_16
-	(h->arg[1]->dec, h->arg[1]->len * 2), 1, 1);
-	h->data = ft_strjoin_free(h->data, ft_itoa_16
-	(h->arg[2]->dec, h->arg[2]->len * 2), 1, 1);
 }
 
 int		not_valid_arg(t_val *t)
@@ -771,13 +779,12 @@ int		find_byte_to_lbl(t_val *h, t_val *t, int num, int shift)
 	return (FALSE);
 }
 
-int		dir(t_val *h, t_val *t, int num, int dec)
+int		dir(t_val *h, t_val *t, int num)
 {
-	if (t->arg[num]->data[0] == DIRECT_CHAR
-	&& scroll_chars(t->arg[num]->data + 1, "0123456789", '\0'))
+	if (t->arg[num]->data[0] == DIRECT_CHAR && (scroll_chars(t->arg[num]->data + 1, "0123456789", '\0') || (t->arg[num]->data[1] == '-' && scroll_chars(t->arg[num]->data + 2, "0123456789", '\0'))))
 	{
 		t->arg[num]->len = g_tab_reg[t->n_cmd - 1][1];
-		t->arg[num]->dec = dec == 1 ? ft_atoi(t->arg[num]->data + 1) : 0;
+		t->arg[num]->dec = t->r ? ft_atoi(t->arg[num]->data + 1) : 0;
 		if (g_tab_reg[t->n_cmd - 1][0])
 		{
 			free(t->arg[num]->type);
@@ -788,7 +795,7 @@ int		dir(t_val *h, t_val *t, int num, int dec)
 	== LABEL_CHAR && check_lbl(h, t->arg[num]->data + 2))
 	{
 		t->arg[num]->len = g_tab_reg[t->n_cmd - 1][1];
-		t->arg[num]->dec = dec == 1 ? find_byte_to_lbl(h, t, num, 2) : 0;
+		t->arg[num]->dec = t->r ? find_byte_to_lbl(h, t, num, 2) : 0;
 		if (g_tab_reg[t->n_cmd - 1][0])
 		{
 			free(t->arg[num]->type);
@@ -800,7 +807,7 @@ int		dir(t_val *h, t_val *t, int num, int dec)
 	return (TRUE);
 }
 
-int		reg(t_val *t, int num, int dec)
+int		reg(t_val *t, int num)
 {
 	if (t->arg[num]->data[0] == 'r'
 	&& scroll_chars(t->arg[num]->data + 1, "0123456789", '\0')
@@ -810,7 +817,7 @@ int		reg(t_val *t, int num, int dec)
 	&& ft_strcmp(t->arg[num]->data, "r00"))
 	{
 		t->arg[num]->len = 1;
-		t->arg[num]->dec = dec == 1 ? ft_atoi(t->arg[num]->data + 1) : 0;
+		t->arg[num]->dec = t->r ? ft_atoi(t->arg[num]->data + 1) : 0;
 		if (g_tab_reg[t->n_cmd - 1][0])
 		{
 			free(t->arg[num]->type);
@@ -822,12 +829,12 @@ int		reg(t_val *t, int num, int dec)
 	return (TRUE);
 }
 
-int		ind(t_val *h, t_val *t, int num, int dec)
+int		ind(t_val *h, t_val *t, int num)
 {
-	if (scroll_chars(t->arg[num]->data, "0123456789", '\0'))
+	if ((scroll_chars(t->arg[num]->data, "0123456789", '\0') || (t->arg[num]->data[0] == '-' && scroll_chars(t->arg[num]->data + 1, "0123456789", '\0'))))
 	{
 		t->arg[num]->len = 2;
-		t->arg[num]->dec = dec == 1 ? ft_atoi(t->arg[num]->data) : 0;
+		t->arg[num]->dec = t->r ? ft_atoi(t->arg[num]->data) : 0;
 		if (g_tab_reg[t->n_cmd - 1][0])
 		{
 			free(t->arg[num]->type);
@@ -838,7 +845,7 @@ int		ind(t_val *h, t_val *t, int num, int dec)
 	&& check_lbl(h, t->arg[num]->data + 1))
 	{
 		t->arg[num]->len = 2;
-		t->arg[num]->dec = dec == 1 ? find_byte_to_lbl(h, t, num, 1) : 0;
+		t->arg[num]->dec = t->r ? find_byte_to_lbl(h, t, num, 1) : 0;
 		if (g_tab_reg[t->n_cmd - 1][0])
 		{
 			free(t->arg[num]->type);
@@ -850,56 +857,46 @@ int		ind(t_val *h, t_val *t, int num, int dec)
 	return (TRUE);
 }
 
-int		read_args_add
-(t_val *h, t_val *t, int (*err)(t_val*), int (*rght)(t_val*))
-{
-	return (!reg(t, 0, t->r) || (!reg(t, 2, t->r) && !dir(h, t, 2, t->r))
-	|| (!dir(h, t, 1, t->r) && !ind(h, t, 1, t->r) && !reg(t, 1, t->r))
-	? err(t): rght(t));
-}
-
 int		read_args(t_val *h, t_val *t, int (*err)(t_val*), int (*rght)(t_val*))
 {
 	if (t->n_cmd == 1 || t->n_cmd == 9 || t->n_cmd == 12 || t->n_cmd == 15)
-		return (!dir(h, t, 0, t->r) ? err(t) : rght(t));
+		return (!dir(h, t, 0) ? err(t) : rght(t));
 	if (t->n_cmd == 16)
-		return (!reg(t, 0, t->r) ? err(t) : rght(t));
+		return (!reg(t, 0) ? err(t) : rght(t));
 	if (t->n_cmd == 4 || t->n_cmd == 5)
-		return ((!reg(t, 0, t->r) || !reg(t, 1, t->r) || !reg(t, 2, t->r))
-		? err(t) : rght(t));
+		return ((!reg(t, 0) || !reg(t, 1) || !reg(t, 2)) ? err(t) : rght(t));
 	if (t->n_cmd == 2 || t->n_cmd == 13)
-		return ((!dir(h, t, 0, t->r) && !ind(h, t, 0, t->r)) || !reg(t, 1, t->r)
+		return ((!dir(h, t, 0) && !ind(h, t, 0)) || !reg(t, 1)
 		? err(t) : rght(t));
 	if (t->n_cmd == 10 || t->n_cmd == 14)
-		return ((!dir(h, t, 0, t->r) && !ind(h, t, 0, t->r) && !reg(t, 0, t->r))
-		|| (!reg(t, 1, t->r) && !dir(h, t, 1, t->r)) || !reg(t, 2, t->r)
-		? err(t) : rght(t));
+		return ((!dir(h, t, 0) && !ind(h, t, 0) && !reg(t, 0)) || (!reg(t, 1)
+		&& !dir(h, t, 1)) || !reg(t, 2) ? err(t) : rght(t));
 	if (t->n_cmd == 6 || t->n_cmd == 7 || t->n_cmd == 8)
-		return ((((!dir(h, t, 0, t->r) && !ind(h, t, 0, t->r)
-		&& !reg(t, 0, t->r))) || (!dir(h, t, 1, t->r) && !ind(h, t, 1, t->r)
-		&& !reg(t, 1, t->r)) || !reg(t, 2, t->r)) ? err(t) : rght(t));
+		return ((((!dir(h, t, 0) && !ind(h, t, 0) && !reg(t, 0)))
+		|| (!dir(h, t, 1) && !ind(h, t, 1) && !reg(t, 1))
+		|| !reg(t, 2)) ? err(t) : rght(t));
 	if (t->n_cmd == 3)
-		return ((!reg(t, 0, t->r) || (!ind(h, t, 1, t->r) && !reg(t, 1, t->r)))
+		return ((!reg(t, 0) || (!ind(h, t, 1) && !reg(t, 1)))
 		? err(t) : rght(t));
 	if (t->n_cmd == 11)
-		return (read_args_add(h, t, err, rght));
+		return (!reg(t, 0) || (!reg(t, 2) && !dir(h, t, 2))
+		|| (!dir(h, t, 1) && !ind(h, t, 1) && !reg(t, 1))
+		? err(t): rght(t));
 	return (0);
 }
 
-int		read_cmd(t_val *h, int (*err)(t_val*), int (*rght)(t_val*), int dec)
+int		read_cmd(t_val *h, int (*err)(t_val*), int (*rght)(t_val*))
 {
 	t_val *t;
 
 	t = h;
 	while (t)
 	{
-		if (t->n_cmd >= 0)
-			if (read_args(h, t, err, rght))
-				return (TRUE);
-		if (dec == 1 && t->len > 0 && !t->istxt)
-			build_0x(t);
+		if (t->n_cmd > 0)
+			read_args(h, t, err, rght);
 		t = t->next;
 	}
+	//printer_valid(h);
 	return (FALSE);
 }
 
@@ -989,13 +986,28 @@ int		check_champ(t_val *h, int max, int flag)
 	return ((count == 2 && len <= max) ? TRUE : FALSE);
 }
 
+void	print_error_cmd(char *s, char *find)
+{
+	char *t;
+	int len;
+
+	t = ft_strstr(s, find);
+	len = t - s;
+	// printf("%s\n", find);
+	// printf("%d\n", len);
+}
+
 int		check_all(t_val *h)
 {
+	char *t;
+
+	t = h->all;
 	while (h)
 	{
 		if (!h->istxt && !h->islbl && !h->iscmd)
 		{
-			ft_putendl(h->error_l);
+			//print_error_cmd(t, h->error_l);
+			//ft_putendl(h->error_l);
 			return (TRUE);
 		}
 		h = h->next;
@@ -1005,7 +1017,7 @@ int		check_all(t_val *h)
 
 int		rght_null(t_val *h)
 {
-	return (0);
+	return (1);
 }
 
 void	ft_value_in_memory(char *memory, int pos, int value, int size)
@@ -1108,7 +1120,7 @@ int		code_size(t_val *h)
 	rez = 0;
 	while (h)
 	{
-		if (h->n_cmd > 0)
+		if (h->n_cmd > 0 && h->arg[0] && h->arg[1] && h->arg[2])
 			rez += h->len + h->arg[0]->len + h->arg[1]->len + h->arg[2]->len;
 		h = h->next;
 	}
@@ -1121,6 +1133,7 @@ void	del_list_valid(t_val **del)
 	ft_memdel((void**)(&(*del)->error_l));
 	ft_memdel((void**)(&(*del)->data));
 	ft_memdel((void**)(&(*del)->n_lbl));
+	ft_memdel((void**)(&(*del)->all));
 	ft_memdel((void**)(&(*del)->arg[0]->type));
 	ft_memdel((void**)(&(*del)->arg[1]->type));
 	ft_memdel((void**)(&(*del)->arg[2]->type));
@@ -1128,6 +1141,10 @@ void	del_list_valid(t_val **del)
 	ft_memdel((void**)(&(*del)->arg[0]->data));
 	ft_memdel((void**)(&(*del)->arg[1]->data));
 	ft_memdel((void**)(&(*del)->arg[2]->data));
+	free((*del)->arg[0]);
+	free((*del)->arg[1]);
+	free((*del)->arg[2]);
+	free((*del)->arg[3]);
 	free(*del);
 }
 
@@ -1158,12 +1175,12 @@ char	*find_quote(char *s, int ch, int n1, int n2)
 	j = 0;
 	while (s[i])
 	{
+		if (count == n1 && j == 0)
+			i++;
 		if (s[i] == ch)
 			count++;
 		if (count == n2)
 			break ;
-		if (count == n1 && j == 0)
-			i++;
 		if (count == n1)
 		{
 			t[j] = s[i];
@@ -1190,6 +1207,11 @@ int		check_last_nl(char *s)
 	return (FALSE);
 }
 
+int		rght_one(t_val *h)
+{
+	return (0);
+}
+
 void	parse_commands(t_val *h, char *name)
 {
 	char *newname;
@@ -1197,21 +1219,25 @@ void	parse_commands(t_val *h, char *name)
 
 	size = 0;
 	newname = ft_strjoin_free
-	(ft_strndup(name, ft_strlen(name) - 3), ".cor", 1, 0);
+	(ft_strndup(name, ft_strlen(name) - 2), ft_strdup(".cor"), 1, 1);
 	split_by_comma(h);
-	cut_space(h);
-	if (read_cmd(h, &not_valid_arg, &valid_args, 0))
-		return ;
-	read_cmd(h, &rght_null, &rght_null, 1);
 	if (!check_all(h))
 	{
-	 	if (((size = code_size(h))) <= CHAMP_MAX_SIZE)
-			creat_file(h, newname, size);
-		else
-			ft_putendl("Champion code too long (Max length 682)");
+		cut_space(h);
+		read_cmd(h, &not_valid_arg, &valid_args);
+		read_cmd(h, &rght_null, &rght_one);
+		build_0x(h);
+		if (!check_all(h))
+		{
+
+		 	// if (((size = code_size(h))) <= CHAMP_MAX_SIZE)
+				creat_file(h, newname, code_size(h));
+			// else
+			// 	ft_putendl("Champion code too long (Max length 682)");
+		}
 	}
 	free(newname);
-	//printer_valid(h);/////////////////////////////////////////////////////
+	printer_valid(h);//////
 }
 
 void	vocabulary(t_val *h, char *quote1, char *quote2, char *name)
@@ -1227,11 +1253,13 @@ void	vocabulary(t_val *h, char *quote1, char *quote2, char *name)
 	find_label(h);
 	check_dubl_label(h, h);
 	write_command_num(h);
-	if (!check_champ(h, PROG_NAME_LENGTH, 0))
-		ft_putendl("Champion name too long (Max length 128)");
-	else if (!check_champ(h, COMMENT_LENGTH, 1))
-		ft_putendl("Champion comment too long (Max length 2048)");
-	else if (!check_all(h))
+	// if (!check_champ(h, PROG_NAME_LENGTH, 0))
+	// 	ft_putendl("Champion name too long (Max length 128)");
+	// else if (!check_champ(h, COMMENT_LENGTH, 1))
+	// 	ft_putendl("Champion comment too long (Max length 2048)");
+	//else
+	//printer_valid(h);
+	if (!check_all(h))
 		parse_commands(h, name);
 }
 
@@ -1252,7 +1280,7 @@ void	create_valid_roll(char *s, char *quote1, char *quote2, char *name)
 		if (scroll_spaces(t[i], count))
 		{
 			if (!head)
-				head = create_list_valid(t[i]);
+				head = create_list_valid(t[i], s);
 			else
 				head = creator_valid(head, t[i]);
 		}

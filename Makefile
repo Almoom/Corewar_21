@@ -13,10 +13,17 @@
 CC = gcc
 NAME = asm
 SRC = asm.c
+TEST = Car
 
 make:
+	@rm -f /Users/ljalikak/Documents/corewar_21/*.cor
 	@$(CC) -g -o $(NAME) $(SRC) /Users/ljalikak/Documents/corewar_21/libft/libft.a
-	./$(NAME) puhlyash.s
+	./$(NAME) $(TEST).s
+	chmod 777 $(TEST).cor
+	hexdump $(TEST).cor > test.txt
+	./asm2 $(TEST).s
+	hexdump $(TEST).cor > test1.txt
+	diff test.txt test1.txt
 
 clean:
 	@rm -f /Users/ljalikak/Documents/corewar_21/libft/*.o
