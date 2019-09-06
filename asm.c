@@ -246,7 +246,7 @@ char	*del_comments(char *s)
 			count++;
 		if (count % 2 == 0
 		&& (s[i] == COMMENT_CHAR || s[i] == ALT_COMMENT_CHAR))
-			while (s[i] != '\n')
+			while (s[i] && s[i] != '\n')
 				i++;
 		t[j] = s[i];
 		j++;
@@ -1169,25 +1169,26 @@ char	*find_quote(char *s, int ch, int n1, int n2)
 	int count;
 	int j;
 
-	t = ft_strnew(ft_strlen(s));
-	i = 0;
+	t = ft_strnew(ft_strlen(s) + 1);
+	i = -1;
 	count = 0;
-	j = 0;
-	while (s[i])
+	j = -1;
+	while (s[++i])
 	{
-		if (count == n1 && j == 0)
-			i++;
-		if (s[i] == ch)
-			count++;
-		if (count == n2)
-			break ;
 		if (count == n1)
 		{
-			t[j] = s[i];
-			j++;
+			while (s[i] != ch)
+			{
+				t[++j] = s[i];
+				i++;
+			}
 		}
-		i++;
+		if (count == n2)
+			break ;
+		if (s[i] == ch)
+			count++;
 	}
+	//printf("%s\n", t);
 	return (t);
 }
 
@@ -1237,7 +1238,7 @@ void	parse_commands(t_val *h, char *name)
 		}
 	}
 	free(newname);
-	printer_valid(h);//////
+	//printer_valid(h);//////
 }
 
 void	vocabulary(t_val *h, char *quote1, char *quote2, char *name)
@@ -1332,6 +1333,7 @@ int		main(int ac, char **av)
 	char *quote2;
 
 	s = NULL;
+
 	if (ac == 2 && !ft_strcmp(av[1] + ft_strlen(av[1]) - 2, ".s"))
 	{
 		s = read_file(av[1]);
@@ -1339,7 +1341,9 @@ int		main(int ac, char **av)
 		if (check_last_nl(s))
 		{
 			quote1 = find_quote(s, '\"', 1, 2);
+			//ft_putendl("--");
 			quote2 = find_quote(s, '\"', 3, 4);
+
 			create_valid_roll(s, quote1, quote2, av[1]);
 		}
 		else
