@@ -34,7 +34,8 @@ typedef struct		s_val
 	char			*line;
 	char			*error_l;
 	char			*data;
-	char			*all;
+	char			*n_lbl;
+	t_ar			*arg[4];
 	int				type;
 	int				is_nm_start;
 	int				is_nm_middle;
@@ -46,10 +47,8 @@ typedef struct		s_val
 	int				istxt;
 	int				iscmd;
 	int				n_cmd;
-	t_ar			*arg[4];
 	int				r;
 	int				islbl;
-	char			*n_lbl;
 }					t_val;
 
 

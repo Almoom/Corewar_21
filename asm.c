@@ -13,6 +13,8 @@
 #include "asm.h"
 #include "op.h"
 #include <string.h>
+#include <errno.h>
+#include <stdio.h>
 
 char *g_tab_com[16] =
 {
@@ -57,21 +59,21 @@ int g_tab_reg[16][2] =
 void	printer_valid(t_val *head)
 {
 	//ft_putendl("nm1\tnm2\tnm3\tcom1\tcom2\tcom3\tlen\ttxt\tcmd\t№\ta1\ta2\ta3\tx0\tready\tlbl\tname\tdata\tline\n");
-	ft_putendl("txt\tcmd\t№\tlen\ttype\t\tt_i\ta1\tda1\tlen1\ta2\tda2\tlen2\ta3\tda3\tlen3\tready_l\tlbl\tname\tdata\t\tline\n");
+	ft_putendl("nm1\tnm2\tnm3\tcom1\tcom2\tcom3\ttxt\tcmd\t№\tlen\ttype\t\tt_i\ta1\tda1\tlen1\ta2\tda2\tlen2\ta3\tda3\tlen3\tready_l\tlbl\tname\tdata\t\tline\n");
 	while (head)
 	{
-		// ft_putnbr(head->is_nm_start);
-		// ft_putstr("\t");
-		// ft_putnbr(head->is_nm_middle);
-		// ft_putstr("\t");
-		// ft_putnbr(head->is_nm_end);
-		// ft_putstr("\t");
-		// ft_putnbr(head->is_cmnt_start);
-		// ft_putstr("\t");
-		// ft_putnbr(head->is_cmnt_middle);
-		// ft_putstr("\t");
-		// ft_putnbr(head->is_cmnt_end);
-		//ft_putstr("\t");
+		ft_putnbr(head->is_nm_start);
+		ft_putstr("\t");
+		ft_putnbr(head->is_nm_middle);
+		ft_putstr("\t");
+		ft_putnbr(head->is_nm_end);
+		ft_putstr("\t");
+		ft_putnbr(head->is_cmnt_start);
+		ft_putstr("\t");
+		ft_putnbr(head->is_cmnt_middle);
+		ft_putstr("\t");
+		ft_putnbr(head->is_cmnt_end);
+		ft_putstr("\t");
 		ft_putnbr(head->istxt);
 		ft_putstr("\t");
 		// if (head->istxt == 0)
@@ -121,6 +123,21 @@ void	printer_valid(t_val *head)
 	}
 }
 
+char	*skip_chars_at_first_add(char *s, int n)
+{
+	char *t;
+	int i;
+
+	t = ft_strnew(ft_strlen(s));
+	i = 0;
+	while (s[n + i])
+	{
+		t[i] = s[n + i];
+		i++;
+	}
+	return (t);
+}
+
 char	*skip_chars_at_first(char *s, char *chars)
 {
 	int		begin;
@@ -140,12 +157,14 @@ char	*skip_chars_at_first(char *s, char *chars)
 		if (flag == 0)
 			break ;
 	}
-	if (*(s + begin) == '\0')
+	if (s[begin] == '\0')
 	{
 		free(s);
 		return (NULL);
 	}
-	tmp = ft_strdup(s + begin);
+	tmp = skip_chars_at_first_add(s, begin);
+
+	//tmp = ft_strdup(s + begin);
 	free(s);
 	return (tmp);
 }
@@ -256,7 +275,7 @@ char	*del_comments(char *s)
 	return (t);
 }
 
-t_val	*create_list_valid(char *s, char *all)
+t_val	*create_list_valid(char *s)
 {
 	t_val *list;
 	int i;
@@ -266,8 +285,6 @@ t_val	*create_list_valid(char *s, char *all)
 		return (NULL);
 	list->line = ft_strdup(s);
 	list->error_l = ft_strdup(s);
-	//if (all)
-	//	list->all = ft_strdup(all);
 	while (i < 4)
 	{
 		if (!(list->arg[i] = (t_ar*)ft_memalloc(sizeof(t_ar))))
@@ -286,7 +303,7 @@ t_val	*creator_valid(t_val *head, char *s)
 	list = NULL;
 	while (head->next)
 		head = head->next;
-	list = create_list_valid(s, NULL);
+	list = create_list_valid(s);
 	head->next = list;
 	list->prev = head;
 	return (tmp);
@@ -409,7 +426,7 @@ void	find_end_champ(t_val *h, int comment)
 	while (h)
 	{
 		t = comment == 0 ? h->is_nm_middle : h->is_cmnt_middle;
-		if (t == 1 && count_chars(h->line, '\"') == 0 && h->next)
+		if (t == 1 && count_chars(h->line, '\"') == 0 && h->next && !h->next->is_cmnt_start && !h->next->is_nm_start)
 		{
 			h->next->is_nm_middle = comment == 0 ? 1 : 0;
 			h->next->is_cmnt_middle = comment == 1 ? 1 : 0;
@@ -459,6 +476,7 @@ void 	cut_space(t_val *h)
 {
 	while (h)
 	{
+		//ft_putendl(h->error_l);
 		if (h->istxt == 0 && h->line)
 		{
 			h->line = skip_chars_at_first(h->line, " 	");
@@ -483,7 +501,7 @@ void 	cut_space(t_val *h)
 	}
 }
 
-int		scroll_chars(char *s, char *chars, int ch)
+int		scroll_chars_to_end(char *s, char *chars, int ch)
 {
 	int		begin;
 	int		i;
@@ -521,7 +539,8 @@ int		check_cmd(t_val *h)
 		if (ft_strnstr(h->line, g_tab_com[i], ft_strlen(g_tab_com[i]))
 		&& ((h->line + ft_strlen(g_tab_com[i]))[0] == ' '
 		|| (h->line + ft_strlen(g_tab_com[i]))[0] == '\t'
-		|| (h->line + ft_strlen(g_tab_com[i]))[0] == DIRECT_CHAR))
+		|| (h->line + ft_strlen(g_tab_com[i]))[0] == DIRECT_CHAR
+		|| (h->line + ft_strlen(g_tab_com[i]))[0] == '-'))
 		{
 			t = ft_strdup(h->line + ft_strlen(g_tab_com[i]));
 			free(h->line);
@@ -543,7 +562,7 @@ void	write_command_num(t_val *h)
 		if (h->istxt != 1 && (num = check_cmd(h)) >= 0)
 		{
 			if (h->islbl != 1 && (h->line[0] == ' ' || h->line[0] == '\t'
-			|| h->line[0] == '%'))
+			|| h->line[0] == '%' || h->line[0] == '-'))
 				h->iscmd = 1;
 			h->n_cmd = num + 1;
 			h->len++;
@@ -569,8 +588,8 @@ void	find_label(t_val *h)
 	t[0] = LABEL_CHAR;
 	while (h)
 	{
-		if ((h)->istxt == 0 && ft_strchr(h->line, LABEL_CHAR)
-		&& scroll_chars(h->line, LABEL_CHARS, LABEL_CHAR))
+		if (h->istxt == 0 && ft_strchr(h->line, LABEL_CHAR)
+		&& scroll_chars_to_end(h->line, LABEL_CHARS, LABEL_CHAR))
 		{
 			h->islbl = 1;
 			h->n_lbl = ft_strndup
@@ -695,20 +714,20 @@ void	build_0x(t_val *h)
 	{
 		if (!h->istxt)
 		{
-			h->data = ft_strdup("0x");
-			h->data = ft_strjoin_free(h->data, ft_itoa_16(h->n_cmd, 2), 1, 1);
+			// h->data = ft_strdup("0x");
+			// h->data = ft_strjoin_free(h->data, ft_itoa_16(h->n_cmd, 2), 1, 1);
 			if (h->n_cmd > 0 && g_tab_reg[h->n_cmd - 1][0] != 0)
 			{
 				h->type = build_byte_types(h);
-				h->data = ft_strjoin_free
-				(h->data, ft_itoa_16(h->type, 2), 1, 1);
+				// h->data = ft_strjoin_free
+				// (h->data, ft_itoa_16(h->type, 2), 1, 1);
 			}
-			h->data = ft_strjoin_free(h->data, ft_itoa_16
-			(h->arg[0]->dec, h->arg[0]->len * 2), 1, 1);
-			h->data = ft_strjoin_free(h->data, ft_itoa_16
-			(h->arg[1]->dec, h->arg[1]->len * 2), 1, 1);
-			h->data = ft_strjoin_free(h->data, ft_itoa_16
-			(h->arg[2]->dec, h->arg[2]->len * 2), 1, 1);
+			// h->data = ft_strjoin_free(h->data, ft_itoa_16
+			// (h->arg[0]->dec, h->arg[0]->len * 2), 1, 1);
+			// h->data = ft_strjoin_free(h->data, ft_itoa_16
+			// (h->arg[1]->dec, h->arg[1]->len * 2), 1, 1);
+			// h->data = ft_strjoin_free(h->data, ft_itoa_16
+			// (h->arg[2]->dec, h->arg[2]->len * 2), 1, 1);
 		}
 		h = h->next;
 	}
@@ -718,9 +737,13 @@ int		not_valid_arg(t_val *t)
 {
 	t->islbl = 0;
 	t->iscmd = 0;
-	ft_putstr("Lexical error at ");
-	if (t->error_l)
-		ft_putendl(t->error_l);
+	// if (t->error_l)
+	// {
+	// 	ft_putstr_fd("\033[0;31m", 2);
+	// 	ft_putstr_fd(t->error_l, 2);
+	// 	ft_putstr_fd("\033[0m", 2);
+	// }
+	// ft_putstr_fd("\nError - Parameter is invalid\n", 2);
 	return (1);
 }
 
@@ -781,7 +804,7 @@ int		find_byte_to_lbl(t_val *h, t_val *t, int num, int shift)
 
 int		dir(t_val *h, t_val *t, int num)
 {
-	if (t->arg[num]->data[0] == DIRECT_CHAR && (scroll_chars(t->arg[num]->data + 1, "0123456789", '\0') || (t->arg[num]->data[1] == '-' && scroll_chars(t->arg[num]->data + 2, "0123456789", '\0'))))
+	if (t->arg[num]->data[0] == DIRECT_CHAR && (scroll_chars_to_end(t->arg[num]->data + 1, "0123456789", '\0') || (t->arg[num]->data[1] == '-' && scroll_chars_to_end(t->arg[num]->data + 2, "0123456789", '\0'))))
 	{
 		t->arg[num]->len = g_tab_reg[t->n_cmd - 1][1];
 		t->arg[num]->dec = t->r ? ft_atoi(t->arg[num]->data + 1) : 0;
@@ -810,7 +833,7 @@ int		dir(t_val *h, t_val *t, int num)
 int		reg(t_val *t, int num)
 {
 	if (t->arg[num]->data[0] == 'r'
-	&& scroll_chars(t->arg[num]->data + 1, "0123456789", '\0')
+	&& scroll_chars_to_end(t->arg[num]->data + 1, "0123456789", '\0')
 	&& (ft_strlen(t->arg[num]->data) == 3
 	|| ft_strlen(t->arg[num]->data) == 2)
 	&& ft_strcmp(t->arg[num]->data, "r0")
@@ -831,7 +854,7 @@ int		reg(t_val *t, int num)
 
 int		ind(t_val *h, t_val *t, int num)
 {
-	if ((scroll_chars(t->arg[num]->data, "0123456789", '\0') || (t->arg[num]->data[0] == '-' && scroll_chars(t->arg[num]->data + 1, "0123456789", '\0'))))
+	if ((scroll_chars_to_end(t->arg[num]->data, "0123456789", '\0') || (t->arg[num]->data[0] == '-' && scroll_chars_to_end(t->arg[num]->data + 1, "0123456789", '\0'))))
 	{
 		t->arg[num]->len = 2;
 		t->arg[num]->dec = t->r ? ft_atoi(t->arg[num]->data) : 0;
@@ -960,30 +983,24 @@ void	check_dubl_label(t_val *a, t_val *b)
 
 int		check_champ(t_val *h, int max, int flag)
 {
-	int count;
 	int len;
 	int start;
 	int end;
 
-	count = 0;
 	len = 0;
 	while (h)
 	{
 		start = flag == 0 ? h->is_nm_start : h->is_cmnt_start;
 		end = flag == 0 ? h->is_nm_end : h->is_cmnt_end;
 		if (h->istxt && start)
-		{
-			count++;
 			len = h->len;
-		}
 		if (h->istxt && end)
-		{
-			count++;
 			break ;
-		}
 		h = h->next;
 	}
-	return ((count == 2 && len <= max) ? TRUE : FALSE);
+	len > max && !flag ? ft_putstr_fd("Error - Maximum name length exceeded\n", 2) : 0;
+	len > max && flag ? ft_putstr_fd("Error - Maximum comment length exceeded\n", 2) : 0;
+	return (len > max ? TRUE : FALSE);
 }
 
 void	print_error_cmd(char *s, char *find)
@@ -999,15 +1016,17 @@ void	print_error_cmd(char *s, char *find)
 
 int		check_all(t_val *h)
 {
-	char *t;
-
-	t = h->all;
 	while (h)
 	{
 		if (!h->istxt && !h->islbl && !h->iscmd)
 		{
-			//print_error_cmd(t, h->error_l);
-			//ft_putendl(h->error_l);
+			if (h->error_l)
+			{
+				ft_putstr_fd("\033[0;31m", 2);
+				ft_putstr_fd(skip_chars_at_first(h->error_l, " 	"), 2);
+				ft_putstr_fd("\033[0m", 2);
+			}
+			ft_putstr_fd("\nError - Parameter is invalid\n", 2);
 			return (TRUE);
 		}
 		h = h->next;
@@ -1130,10 +1149,9 @@ int		code_size(t_val *h)
 void	del_list_valid(t_val **del)
 {
 	ft_memdel((void**)(&(*del)->line));
-	ft_memdel((void**)(&(*del)->error_l));
+	//ft_memdel((void**)(&(*del)->error_l));
 	ft_memdel((void**)(&(*del)->data));
 	ft_memdel((void**)(&(*del)->n_lbl));
-	ft_memdel((void**)(&(*del)->all));
 	ft_memdel((void**)(&(*del)->arg[0]->type));
 	ft_memdel((void**)(&(*del)->arg[1]->type));
 	ft_memdel((void**)(&(*del)->arg[2]->type));
@@ -1213,12 +1231,54 @@ int		rght_one(t_val *h)
 	return (0);
 }
 
+int		scroll_chars(char *s, char *chars)
+{
+	int		begin;
+	int		i;
+	int		flag;
+
+	begin = 0;
+	while (s[begin])
+	{
+		i = -1;
+		flag = 0;
+		while (chars[++i])
+			if (s[begin] == chars[i])
+				flag = 1;
+		if (flag == 0)
+			break ;
+		begin++;
+	}
+	return (s[begin]);
+}
+
+int		check_true_lbl(t_val *h)
+{
+	while (h)
+	{
+
+		if (h->line && !h->istxt && !h->iscmd && ft_strchr(h->line, LABEL_CHAR)
+		&& scroll_chars(h->line, LABEL_CHARS) != LABEL_CHAR)
+		{
+			ft_putstr_fd("\033[0;31m", 2);
+			ft_putstr_fd(h->error_l, 2);
+			ft_putstr_fd("\033[0m", 2);
+			ft_putstr_fd("\nError - Label is invalid\n", 2);
+			return (TRUE);
+		}
+		h = h->next;
+	}
+	return (FALSE);
+}
+
 void	parse_commands(t_val *h, char *name)
 {
 	char *newname;
 	int size;
 
 	size = 0;
+	if (check_true_lbl(h))
+		return ;
 	newname = ft_strjoin_free
 	(ft_strndup(name, ft_strlen(name) - 2), ft_strdup(".cor"), 1, 1);
 	split_by_comma(h);
@@ -1238,7 +1298,77 @@ void	parse_commands(t_val *h, char *name)
 		}
 	}
 	free(newname);
-	//printer_valid(h);//////
+	// printer_valid(h);//////
+}
+
+int		check_header(t_val *a, t_val *b)
+{
+	t_val *t;
+
+	t = b;
+	while (a)
+	{
+		while (b)
+		{
+			if (a->istxt && b->istxt && a!= b && ((a->is_nm_start
+			&& b->is_nm_start) || (a->is_cmnt_start && b->is_cmnt_start)))
+			{
+				ft_putstr_fd("\033[0;31m", 2);
+				ft_putstr_fd(a->error_l, 2);
+				ft_putstr_fd("\033[0m", 2);
+				ft_putstr_fd("\nError - Header\n", 2);
+				return (TRUE);
+			}
+			b = b->next;
+		}
+		b = t;
+		a = a->next;
+	}
+	return (FALSE);
+}
+
+int		check_end(t_val *h)
+{
+	while (h)
+	{
+		if (!h->istxt && (h->is_nm_middle || h->is_nm_end
+		|| h->is_cmnt_middle || h->is_cmnt_end))
+		{
+			ft_putstr_fd("\033[0;31m", 2);
+			ft_putstr_fd(h->error_l, 2);
+			ft_putstr_fd("\033[0m", 2);
+			ft_putstr_fd("\nError - Header\n", 2);
+			return (TRUE);
+		}
+		h = h->next;
+	}
+	return (FALSE);
+}
+
+int		check_nm_and_cmnt(t_val *h)
+{
+	int nm;
+	int cmnt;
+
+	nm = 0;
+	cmnt = 0;
+	while (h)
+	{
+		if (h->is_nm_start)
+			nm = 1;
+		if (h->is_cmnt_start)
+			cmnt = 1;
+		if (!h->istxt && nm + cmnt != 2)
+		{
+			ft_putstr_fd("\033[0;31m", 2);
+			ft_putstr_fd(h->error_l, 2);
+			ft_putstr_fd("\033[0m", 2);
+			ft_putstr_fd("\nError - Header\n", 2);
+			return (TRUE);
+		}
+		h = h->next;
+	}
+	return (FALSE);
 }
 
 void	vocabulary(t_val *h, char *quote1, char *quote2, char *name)
@@ -1249,18 +1379,18 @@ void	vocabulary(t_val *h, char *quote1, char *quote2, char *name)
 	find_middle_champ(h, 1);
 	find_end_champ(h, 0);
 	find_end_champ(h, 1);
+	if (check_end(h) || check_header(h, h) || check_nm_and_cmnt(h))
+		return ;
 	write_content(h, quote1, quote2);
 	cut_space(h);
 	find_label(h);
-	check_dubl_label(h, h);
+	check_dubl_label(h, h); //????????????????????
 	write_command_num(h);
-	// if (!check_champ(h, PROG_NAME_LENGTH, 0))
-	// 	ft_putendl("Champion name too long (Max length 128)");
-	// else if (!check_champ(h, COMMENT_LENGTH, 1))
-	// 	ft_putendl("Champion comment too long (Max length 2048)");
-	//else
-	//printer_valid(h);
-	if (!check_all(h))
+	//printer_valid(h);//////////////
+	if (check_champ(h, PROG_NAME_LENGTH, 0)
+	|| check_champ(h, COMMENT_LENGTH, 1))
+		return ;
+	//else if (!check_all(h))
 		parse_commands(h, name);
 }
 
@@ -1281,7 +1411,7 @@ void	create_valid_roll(char *s, char *quote1, char *quote2, char *name)
 		if (scroll_spaces(t[i], count))
 		{
 			if (!head)
-				head = create_list_valid(t[i], s);
+				head = create_list_valid(t[i]);
 			else
 				head = creator_valid(head, t[i]);
 		}
@@ -1319,13 +1449,6 @@ void	print_error_endfile(char *s)
 	ft_putendl("] END \"(null)\"");
 }
 
-void 	print_error_args(int ac)
-{
-	ft_putstr("Wrong number of arguments (given ");
-	ft_putnbr(ac - 1);
-	ft_putendl(", expected 1)");
-}
-
 int		main(int ac, char **av)
 {
 	char *s;
@@ -1333,7 +1456,6 @@ int		main(int ac, char **av)
 	char *quote2;
 
 	s = NULL;
-
 	if (ac == 2 && !ft_strcmp(av[1] + ft_strlen(av[1]) - 2, ".s"))
 	{
 		s = read_file(av[1]);
@@ -1341,9 +1463,7 @@ int		main(int ac, char **av)
 		if (check_last_nl(s))
 		{
 			quote1 = find_quote(s, '\"', 1, 2);
-			//ft_putendl("--");
 			quote2 = find_quote(s, '\"', 3, 4);
-
 			create_valid_roll(s, quote1, quote2, av[1]);
 		}
 		else
@@ -1351,7 +1471,7 @@ int		main(int ac, char **av)
 		free(s);
 	}
 	else if (ac != 2)
-		print_error_args(ac);
+		ft_putstr_fd("usage: ./asm sourcefile.s\n", 2);
 	else
 		ft_putendl
 		("Syntax error at token [TOKEN][001:001] INDIRECT \"0000890\"");
