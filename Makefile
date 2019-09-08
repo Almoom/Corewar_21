@@ -13,7 +13,7 @@
 CC = gcc
 NAME = asm
 SRC = asm.c
-TEST = test_error/label_error_1
+TEST = test_error/zother_2
 
 make:
 	@rm -f /Users/ljalikak/Documents/corewar_21/*.cor

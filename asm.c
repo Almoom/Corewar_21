@@ -804,6 +804,8 @@ int		find_byte_to_lbl(t_val *h, t_val *t, int num, int shift)
 
 int		dir(t_val *h, t_val *t, int num)
 {
+	if (!t->arg[num]->data)
+		return (FALSE);
 	if (t->arg[num]->data[0] == DIRECT_CHAR && (scroll_chars_to_end(t->arg[num]->data + 1, "0123456789", '\0') || (t->arg[num]->data[1] == '-' && scroll_chars_to_end(t->arg[num]->data + 2, "0123456789", '\0'))))
 	{
 		t->arg[num]->len = g_tab_reg[t->n_cmd - 1][1];
@@ -832,6 +834,8 @@ int		dir(t_val *h, t_val *t, int num)
 
 int		reg(t_val *t, int num)
 {
+	if (!t->arg[num]->data)
+		return (FALSE);
 	if (t->arg[num]->data[0] == 'r'
 	&& scroll_chars_to_end(t->arg[num]->data + 1, "0123456789", '\0')
 	&& (ft_strlen(t->arg[num]->data) == 3
@@ -854,6 +858,8 @@ int		reg(t_val *t, int num)
 
 int		ind(t_val *h, t_val *t, int num)
 {
+	if (!t->arg[num]->data)
+		return (FALSE);
 	if ((scroll_chars_to_end(t->arg[num]->data, "0123456789", '\0') || (t->arg[num]->data[0] == '-' && scroll_chars_to_end(t->arg[num]->data + 1, "0123456789", '\0'))))
 	{
 		t->arg[num]->len = 2;
@@ -882,6 +888,7 @@ int		ind(t_val *h, t_val *t, int num)
 
 int		read_args(t_val *h, t_val *t, int (*err)(t_val*), int (*rght)(t_val*))
 {
+	// ft_putendl(t->error_l);
 	if (t->n_cmd == 1 || t->n_cmd == 9 || t->n_cmd == 12 || t->n_cmd == 15)
 		return (!dir(h, t, 0) ? err(t) : rght(t));
 	if (t->n_cmd == 16)
@@ -915,6 +922,7 @@ int		read_cmd(t_val *h, int (*err)(t_val*), int (*rght)(t_val*))
 	t = h;
 	while (t)
 	{
+
 		if (t->n_cmd > 0)
 			read_args(h, t, err, rght);
 		t = t->next;
@@ -963,24 +971,6 @@ void	split_by_comma(t_val *h)
 	}
 }
 
-void	check_dubl_label(t_val *a, t_val *b)
-{
-	t_val *t;
-
-	t = b;
-	while (a)
-	{
-		while (b)
-		{
-			if (a->islbl && b->islbl && a!= b && !ft_strcmp(a->n_lbl, b->n_lbl))
-				a->islbl = 0;
-			b = b->next;
-		}
-		b = t;
-		a = a->next;
-	}
-}
-
 int		check_champ(t_val *h, int max, int flag)
 {
 	int len;
@@ -1001,17 +991,6 @@ int		check_champ(t_val *h, int max, int flag)
 	len > max && !flag ? ft_putstr_fd("Error - Maximum name length exceeded\n", 2) : 0;
 	len > max && flag ? ft_putstr_fd("Error - Maximum comment length exceeded\n", 2) : 0;
 	return (len > max ? TRUE : FALSE);
-}
-
-void	print_error_cmd(char *s, char *find)
-{
-	char *t;
-	int len;
-
-	t = ft_strstr(s, find);
-	len = t - s;
-	// printf("%s\n", find);
-	// printf("%d\n", len);
 }
 
 int		check_all(t_val *h)
@@ -1210,22 +1189,6 @@ char	*find_quote(char *s, int ch, int n1, int n2)
 	return (t);
 }
 
-int		check_last_nl(char *s)
-{
-	int len;
-
-	len = ft_strlen(s) - 1;
-	while (s[len])
-	{
-		if (s[len] == '\n')
-			return (TRUE);
-		if (s[len] != ' ' && s[len] != '\t')
-			break ;
-		len--;
-	}
-	return (FALSE);
-}
-
 int		rght_one(t_val *h)
 {
 	return (0);
@@ -1258,7 +1221,7 @@ int		check_true_lbl(t_val *h)
 	{
 
 		if (h->line && !h->istxt && !h->iscmd && ft_strchr(h->line, LABEL_CHAR)
-		&& scroll_chars(h->line, LABEL_CHARS) != LABEL_CHAR)
+		&& scroll_chars(h->line, LABEL_CHARS) != LABEL_CHAR && !h->n_cmd)
 		{
 			ft_putstr_fd("\033[0;31m", 2);
 			ft_putstr_fd(h->error_l, 2);
@@ -1271,31 +1234,96 @@ int		check_true_lbl(t_val *h)
 	return (FALSE);
 }
 
+int		check_true_cmd(t_val *h)
+{
+	while (h)
+	{
+
+		if (h->line && !h->istxt && !h->iscmd /*&& !h->islbl*/ && !h->n_cmd
+		&& !ft_strchr(h->line, LABEL_CHAR))
+		{
+			ft_putstr_fd("\033[0;31m", 2);
+			ft_putstr_fd(h->error_l, 2);
+			ft_putstr_fd("\033[0m", 2);
+			ft_putstr_fd("\nError - Operation does not exist\n", 2);
+			return (TRUE);
+		}
+		h = h->next;
+	}
+	return (FALSE);
+}
+
+int		check_true_args(t_val *h)
+{
+	while (h)
+	{
+		if (h->line && !h->istxt && !h->iscmd && h->n_cmd > 0 && (!h->islbl
+		|| count_chars(h->line, SEPARATOR_CHAR) > 2))
+		{
+			ft_putstr_fd("\033[0;31m", 2);
+			ft_putstr_fd(h->error_l, 2);
+			ft_putstr_fd("\033[0m", 2);
+			ft_putstr_fd("\nError - Parameter is invalid\n", 2);
+			return (TRUE);
+		}
+		h = h->next;
+	}
+	return (FALSE);
+}
+
+int		check_dubl_label(t_val *a, t_val *b)
+{
+	t_val *t;
+
+	t = b;
+	while (a)
+	{
+		while (b)
+		{
+			if (a->islbl && b->islbl && a!= b && !ft_strcmp(a->n_lbl, b->n_lbl))
+			{
+				ft_putstr_fd("\033[0;31m", 2);
+				ft_putstr_fd(a->error_l, 2);
+				ft_putstr_fd("\033[0m", 2);
+				ft_putstr_fd("\nError - Label is duplicate\n", 2);
+				return (TRUE);
+			}
+				//a->islbl = 0;
+			b = b->next;
+		}
+		b = t;
+		a = a->next;
+	}
+	return (FALSE);
+}
+
 void	parse_commands(t_val *h, char *name)
 {
 	char *newname;
 	int size;
 
 	size = 0;
-	if (check_true_lbl(h))
+	//printer_valid(h);
+	if (check_dubl_label(h, h) || check_true_lbl(h) || check_true_cmd(h) || check_true_args(h))
 		return ;
 	newname = ft_strjoin_free
 	(ft_strndup(name, ft_strlen(name) - 2), ft_strdup(".cor"), 1, 1);
 	split_by_comma(h);
+	if (check_all(h))
+		return ;
+	cut_space(h);
+	//printer_valid(h);
+	read_cmd(h, &not_valid_arg, &valid_args);
+
+	read_cmd(h, &rght_null, &rght_one);
+	build_0x(h);
 	if (!check_all(h))
 	{
-		cut_space(h);
-		read_cmd(h, &not_valid_arg, &valid_args);
-		read_cmd(h, &rght_null, &rght_one);
-		build_0x(h);
-		if (!check_all(h))
-		{
 
-		 	// if (((size = code_size(h))) <= CHAMP_MAX_SIZE)
-				creat_file(h, newname, code_size(h));
-			// else
-			// 	ft_putendl("Champion code too long (Max length 682)");
-		}
+	 	// if (((size = code_size(h))) <= CHAMP_MAX_SIZE)
+			creat_file(h, newname, code_size(h));
+		// else
+		// 	ft_putendl("Champion code too long (Max length 682)");
 	}
 	free(newname);
 	// printer_valid(h);//////
@@ -1384,7 +1412,7 @@ void	vocabulary(t_val *h, char *quote1, char *quote2, char *name)
 	write_content(h, quote1, quote2);
 	cut_space(h);
 	find_label(h);
-	check_dubl_label(h, h); //????????????????????
+
 	write_command_num(h);
 	//printer_valid(h);//////////////
 	if (check_champ(h, PROG_NAME_LENGTH, 0)
@@ -1422,31 +1450,31 @@ void	create_valid_roll(char *s, char *quote1, char *quote2, char *name)
 	del_roll_valid(&head);
 }
 
-void	print_error_endfile(char *s)
+int		check_exist(char *s)
 {
-	int count;
-	int i;
-
-	count = ft_strlen(s) - 1;
-	i = 1;
-	ft_putstr("Syntax error at token [TOKEN][");
-	if (count_chars(s, '\n') + 1 < 100)
-		ft_putchar('0');
-	if (count_chars(s, '\n') + 1 < 10)
-		ft_putchar('0');
-	ft_putnbr(count_chars(s, '\n') + 1);
-	ft_putchar(':');
-	while (s[count] != '\n')
+	if (scroll_chars(s, " 	\n") == '\0')
 	{
-		i++;
-		count--;
+		ft_putstr_fd("Error - File is empty\n", 2);
+		return (FALSE);
 	}
-	if (i < 100)
-		ft_putchar('0');
-	if (i < 10)
-		ft_putchar('0');
-	ft_putnbr(i);
-	ft_putendl("] END \"(null)\"");
+	return (TRUE);
+}
+
+int		check_last_nl(char *s)
+{
+	int len;
+
+	len = ft_strlen(s) - 1;
+	while (s[len])
+	{
+		if (s[len] == '\n')
+			return (TRUE);
+		if (s[len] != ' ' && s[len] != '\t')
+			break ;
+		len--;
+	}
+	ft_putstr_fd("Error - Not found '\\n' in the end\n", 2);
+	return (FALSE);
 }
 
 int		main(int ac, char **av)
@@ -1460,14 +1488,12 @@ int		main(int ac, char **av)
 	{
 		s = read_file(av[1]);
 		s = del_comments(s);
-		if (check_last_nl(s))
+		if (check_last_nl(s) && check_exist(s))
 		{
 			quote1 = find_quote(s, '\"', 1, 2);
 			quote2 = find_quote(s, '\"', 3, 4);
 			create_valid_roll(s, quote1, quote2, av[1]);
 		}
-		else
-			print_error_endfile(s);
 		free(s);
 	}
 	else if (ac != 2)
@@ -1477,3 +1503,53 @@ int		main(int ac, char **av)
 		("Syntax error at token [TOKEN][001:001] INDIRECT \"0000890\"");
 	return (0);
 }
+
+// int		check_last_nl(char *s)
+// {
+// 	int len;
+//
+// 	len = ft_strlen(s) - 1;
+// 	while (s[len])
+// 	{
+// 		if (s[len] != ' ' && s[len] != '\t')
+// 			break ;
+// 		len--;
+// 	}
+// 	if (s[len] != '\n')
+// 	{
+// 		ft_putstr_fd("Error - Not found '\\n' in the end\n", 2);
+// 		free(s);
+// 		return (TRUE);
+// 	}
+// 	//ft_putendl("--");
+// 	return (FALSE);
+// }
+//
+// int		main(int ac, char **av)
+// {
+// 	char *s;
+// 	char *quote1;
+// 	char *quote2;
+//
+// 	s = NULL;
+// 	if (ac == 2 && !ft_strcmp(av[1] + ft_strlen(av[1]) - 2, ".s"))
+// 	{
+// 		s = read_file(av[1]);
+// 		s = del_comments(s);
+//
+// 		if (check_last_nl(s) || check_exist(s))
+// 			return (0);
+//
+// 		quote1 = find_quote(s, '\"', 1, 2);
+// 		quote2 = find_quote(s, '\"', 3, 4);
+// 		ft_putendl(s);
+// 		create_valid_roll(s, quote1, quote2, av[1]);
+// 		free(s);
+// 	}
+// 	else if (ac != 2)
+// 		ft_putstr_fd("usage: ./asm sourcefile.s\n", 2);
+// 	else
+// 		ft_putendl
+// 		("Syntax error at token [TOKEN][001:001] INDIRECT \"0000890\"");
+// 	return (0);
+// }
